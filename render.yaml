@@ -2,23 +2,19 @@
 # PSR PharmaFlow — Bolamu
 # Configuration Render (infrastructure as code)
 # ──────────────────────────────────────────────────
-# 1. Connecte ton repo GitHub à Render
-# 2. Crée un nouveau "Web Service"
-# 3. Sélectionne le dossier "back" comme root
-# 4. Render lira ce fichier automatiquement
+# CE FICHIER DOIT ÊTRE À LA RACINE DU REPO
+# Render le détecte automatiquement
 # ──────────────────────────────────────────────────
 
 services:
   - type: web
     name: bolamu-api
     env: node
-    region: frankfurt  # Europe pour latence minimale avec Congo
-    plan: free         # Plan gratuit (512 MB RAM)
+    region: frankfurt
+    plan: free
     buildCommand: npm run build
     startCommand: npm start
     healthCheckPath: /api/health
-    repo: https://github.com/kimdev849/Bolamu-App
-    branch: master
     rootDir: back
 
     envVars:
@@ -27,11 +23,11 @@ services:
       - key: PORT
         value: "3000"
       - key: DATABASE_URL
-        sync: false  # À configurer manuellement dans le dashboard
+        sync: false
       - key: DIRECT_URL
-        sync: false  # À configurer manuellement dans le dashboard
+        sync: false
       - key: JWT_SECRET
-        generateValue: true  # Render génère une valeur aléatoire
+        generateValue: true
       - key: JWT_EXPIRES_IN
         value: "7d"
       - key: JWT_REFRESH_EXPIRES_IN
