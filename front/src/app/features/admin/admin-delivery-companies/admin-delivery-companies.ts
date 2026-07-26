@@ -1,5 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Api } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
 
 @Component({
   selector: 'psr-admin-delivery-companies',
@@ -9,6 +10,7 @@ import { Api } from '../../../core/services/api';
 })
 export class AdminDeliveryCompanies implements OnInit {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
 
   readonly companies = signal<any[]>([]);
   readonly filteredCompanies = signal<any[]>([]);
@@ -16,15 +18,23 @@ export class AdminDeliveryCompanies implements OnInit {
   readonly showAddModal = signal(false);
   readonly isLoading = signal(false);
 
+  // Formulaire création
   readonly newName = signal('');
   readonly newEmail = signal('');
   readonly newPhone = signal('');
   readonly newAddress = signal('');
-  readonly newCity = signal('');
-  readonly newFleetSize = signal(0);
+  readonly newCity = signal('Brazzaville');
+  readonly newContactName = signal('');
+  readonly newRegistration = signal('');
+
+  // Succès
+  readonly showSuccess = signal(false);
+  readonly createdEntity = signal<any>(null);
 
   private allCompanies: any[] = [];
   private searchQuery = '';
+
+  readonly cities = ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Ouesso', 'Talangaï'];
 
   get totalActive() { return this.allCompanies.filter(c => c.isActive).length; }
   get totalFleet() { return this.allCompanies.reduce((s, c) => s + (c.fleetSize || 0), 0); }
@@ -37,7 +47,12 @@ export class AdminDeliveryCompanies implements OnInit {
     this.isLoading.set(true);
     this.api.getAdminDeliveryCompanies(1, 100).subscribe({
       next: (res) => {
-        this.allCompanies = res.data || [];
+        this.allCompanies = (res.data || []).map((c: any) => ({
+          ...c,
+          city: c.city?.name || c.city || '—',
+          coverageZones: c.coverageZones || [],
+          fleetSize: c._count?.agents || c.fleetSize || 0,
+        }));
         this.companies.set(this.allCompanies);
         this.applyFilter();
       },
@@ -72,29 +87,34 @@ export class AdminDeliveryCompanies implements OnInit {
     this.applyFilter();
   }
 
+  resetForm(): void {
+    this.newName.set(''); this.newEmail.set(''); this.newPhone.set('');
+    this.newAddress.set(''); this.newCity.set('Brazzaville');
+    this.newContactName.set('');
+    this.newRegistration.set('');
+    this.showSuccess.set(false); this.createdEntity.set(null);
+  }
+
   addCompany(): void {
     const name = this.newName();
     if (!name) return;
-    const newCo = {
-      id: `DC-${Date.now()}`,
+    this.isLoading.set(true);
+    this.api.createAdminDeliveryCompany({
       name,
       email: this.newEmail(),
       phone: this.newPhone(),
       address: this.newAddress(),
-      city: this.newCity() || 'Brazzaville',
-      fleetSize: this.newFleetSize() || 0,
-      isActive: true,
-      coverageZones: [this.newCity() || 'Brazzaville'],
-    };
-    this.allCompanies = [newCo, ...this.allCompanies];
-    this.companies.set(this.allCompanies);
-    this.applyFilter();
-    this.showAddModal.set(false);
-    this.newName.set('');
-    this.newEmail.set('');
-    this.newPhone.set('');
-    this.newAddress.set('');
-    this.newCity.set('');
-    this.newFleetSize.set(0);
+      city: this.newCity(),
+      contactName: this.newContactName() || name,
+    }).subscribe({
+      next: (res) => {
+        this.createdEntity.set({ ...res.data, entityType: 'entreprise de livraison' });
+        this.showSuccess.set(true);
+        this.toast.success('Entreprise créée', 'Compte créé avec succès');
+        this.loadCompanies();
+      },
+      error: (err) => this.toast.error('Erreur', err.error?.message || 'Impossible de créer l\'entreprise'),
+      complete: () => this.isLoading.set(false),
+    });
   }
 }

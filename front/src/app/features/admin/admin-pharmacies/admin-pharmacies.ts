@@ -1,24 +1,37 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { TitleCasePipe } from '@angular/common';
 import { Api } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
 
 @Component({
   selector: 'psr-admin-pharmacies',
-  imports: [],
+  imports: [TitleCasePipe],
   templateUrl: './admin-pharmacies.html',
   styleUrl: './admin-pharmacies.scss',
 })
 export class AdminPharmacies implements OnInit {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
 
   readonly selectedFilter = signal<string>('all');
   readonly filteredPharmacies = signal<any[]>([]);
   readonly showAddModal = signal(false);
   readonly showDetail = signal(false);
   readonly selectedPharmacy = signal<any>(null);
-  readonly newPharmacyName = signal('');
-  readonly newPharmacyCity = signal('');
-  readonly newPharmacyEmail = signal('');
   readonly isLoading = signal(false);
+
+  // Formulaire création
+  readonly newName = signal('');
+  readonly newEmail = signal('');
+  readonly newPhone = signal('');
+  readonly newAddress = signal('');
+  readonly newCity = signal('Brazzaville');
+  readonly newLicenseNumber = signal('');
+  readonly newContactName = signal('');
+
+  // Succès création
+  readonly showSuccess = signal(false);
+  readonly createdEntity = signal<any>(null);
 
   private pharmacies: any[] = [];
   private searchQuery = '';
@@ -30,6 +43,8 @@ export class AdminPharmacies implements OnInit {
     active: 'bg-emerald-100 text-emerald-700', expired: 'bg-red-100 text-red-700',
     pending: 'bg-amber-100 text-amber-700', cancelled: 'bg-slate-100 text-slate-500',
   };
+
+  readonly cities = ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Ouesso', 'Talangaï', 'Mfilou', 'Ouenzé'];
 
   get totalActive() { return this.pharmacies.filter(p => p.isActive).length; }
   get totalPharmacies() { return this.pharmacies.length; }
@@ -44,7 +59,10 @@ export class AdminPharmacies implements OnInit {
     this.isLoading.set(true);
     this.api.getAdminPharmacies(1, 100).subscribe({
       next: (res) => {
-        this.pharmacies = res.data || [];
+        this.pharmacies = (res.data || []).map((p: any) => ({
+          ...p,
+          city: p.city?.name || p.city || '—',
+        }));
         this.applyFilters();
       },
       complete: () => this.isLoading.set(false),
@@ -85,29 +103,43 @@ export class AdminPharmacies implements OnInit {
     this.selectedPharmacy.set(null);
   }
 
+  resetForm(): void {
+    this.newName.set('');
+    this.newEmail.set('');
+    this.newPhone.set('');
+    this.newAddress.set('');
+    this.newCity.set('Brazzaville');
+    this.newLicenseNumber.set('');
+    this.newContactName.set('');
+    this.showSuccess.set(false);
+    this.createdEntity.set(null);
+  }
+
   addPharmacy(): void {
-    const name = this.newPharmacyName();
+    const name = this.newName();
     if (!name) return;
-    const newPharm = {
-      id: `PH-${Date.now()}`,
+
+    this.isLoading.set(true);
+    this.api.createAdminPharmacy({
       name,
-      city: this.newPharmacyCity() || 'Brazzaville',
-      email: this.newPharmacyEmail(),
-      isActive: true,
-      isVerified: false,
-      subscriptionStatus: 'pending',
-      pharmacistInCharge: '',
-      licenseNumber: '',
-      phone: '',
-      address: '',
-      region: '',
-    };
-    this.pharmacies = [newPharm, ...this.pharmacies];
-    this.applyFilters();
-    this.showAddModal.set(false);
-    this.newPharmacyName.set('');
-    this.newPharmacyCity.set('');
-    this.newPharmacyEmail.set('');
+      email: this.newEmail(),
+      phone: this.newPhone(),
+      address: this.newAddress(),
+      city: this.newCity(),
+      licenseNumber: this.newLicenseNumber() || undefined,
+      contactName: this.newContactName() || name,
+    }).subscribe({
+      next: (res) => {
+        this.createdEntity.set({ ...res.data, entityType: 'pharmacie' });
+        this.showSuccess.set(true);
+        this.toast.success('Pharmacie créée', `Compte créé avec succès`);
+        this.loadPharmacies();
+      },
+      error: (err) => {
+        this.toast.error('Erreur', err.error?.message || 'Impossible de créer la pharmacie');
+      },
+      complete: () => this.isLoading.set(false),
+    });
   }
 
   toggleActive(ph: any): void {
