@@ -1,0 +1,87 @@
+<div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Commissions</h1>
+      <p class="text-sm text-slate-500 mt-1">Gestion des commissions sur les commandes</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total commissions</p>
+      <p class="text-2xl font-extrabold text-slate-900 mt-1">{{ totalAmount | number }} FCFA</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">En attente</p>
+      <p class="text-2xl font-extrabold text-amber-600 mt-1">{{ pendingAmount | number }} FCFA</p>
+      <div class="mt-2 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+        <div class="bg-amber-500 h-full rounded-full transition-all" [style.width]="(pendingAmount / totalAmount) * 100 + '%'"></div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Payées</p>
+      <p class="text-2xl font-extrabold text-emerald-600 mt-1">{{ paidAmount | number }} FCFA</p>
+      <div class="mt-2 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+        <div class="bg-emerald-500 h-full rounded-full transition-all" [style.width]="(paidAmount / totalAmount) * 100 + '%'"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex gap-1.5 flex-wrap">
+    @for (f of ['all', 'pending', 'paid']; track f) {
+      <button (click)="filterBy(f)"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200"
+        [class.bg-indigo-600]="selectedFilter() === f"
+        [class.text-white]="selectedFilter() === f"
+        [class.bg-slate-100]="selectedFilter() !== f"
+        [class.text-slate-600]="selectedFilter() !== f"
+        [class.hover:bg-slate-200]="selectedFilter() !== f"
+      >
+        @switch (f) {
+          @case ('all') { Toutes ({{ commissions().length }}) }
+          @case ('pending') { En attente ({{ pendingCount }}) }
+          @case ('paid') { Payées ({{ paidCount }}) }
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Commissions List -->
+  <div class="space-y-2">
+    @for (c of filteredCommissions(); track c.id) {
+      <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between hover:border-indigo-200 transition-all">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            [class.bg-emerald-50]="c.status === 'paid'"
+            [class.bg-amber-50]="c.status === 'pending'">
+            <svg class="w-5 h-5" [class.text-emerald-600]="c.status === 'paid'" [class.text-amber-600]="c.status === 'pending'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-900">Commission {{ c.percentage }}% — Commande {{ c.orderId }}</p>
+            <p class="text-xs text-slate-400">{{ c.amount | number }} FCFA · {{ c.createdAt | date:'dd/MM/yyyy' }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            [class.bg-emerald-100]="c.status === 'paid'"
+            [class.text-emerald-700]="c.status === 'paid'"
+            [class.bg-amber-100]="c.status === 'pending'"
+            [class.text-amber-700]="c.status === 'pending'">
+            {{ c.status === 'paid' ? 'Payée' : 'En attente' }}
+          </span>
+          @if (c.status === 'pending') {
+            <button (click)="markAsPaid(c.id)" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Marquer payée</button>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+        <p class="text-sm text-slate-400">Aucune commission trouvée</p>
+      </div>
+    }
+  </div>
+</div>

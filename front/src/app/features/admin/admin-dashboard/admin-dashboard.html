@@ -1,0 +1,167 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Tableau de bord</h1>
+      <p class="text-sm text-slate-500 mt-1">Vue d'ensemble de la plateforme Bolamu</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 font-medium">
+        {{ today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    @for (stat of stats(); track stat.title) {
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center"
+            [class.bg-indigo-50]="stat.color === 'blue'"
+            [class.bg-violet-50]="stat.color === 'violet'"
+            [class.bg-amber-50]="stat.color === 'amber'"
+            [class.bg-emerald-50]="stat.color === 'emerald'"
+          >
+            <svg class="w-5 h-5" [class.text-indigo-600]="stat.color === 'blue'" [class.text-violet-600]="stat.color === 'violet'" [class.text-amber-600]="stat.color === 'amber'" [class.text-emerald-600]="stat.color === 'emerald'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="stat.icon" />
+            </svg>
+          </div>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ stat.change }}</span>
+        </div>
+        <p class="text-sm text-slate-500 mb-1">{{ stat.title }}</p>
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-2xl font-bold text-slate-900">{{ stat.value }}</span>
+          <span class="text-sm text-slate-400">{{ stat.active }} actif{{ stat.active !== 1 ? 's' : '' }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Activity Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Recent Requests -->
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <h3 class="font-semibold text-slate-900">Demandes récentes</h3>
+        <a routerLink="/admin/orders" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">Voir tout →</a>
+      </div>
+      <div class="divide-y divide-slate-100">
+        @for (req of recentRequests(); track req.id) {
+          <div class="px-6 py-3.5 hover:bg-slate-50 transition-colors">
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-sm font-semibold text-slate-900">{{ req.productName }}</p>
+              <span class="text-xs px-2 py-0.5 rounded-full font-semibold" [class]="STATUS_COLORS[req.status] || 'bg-slate-100 text-slate-600'">
+                {{ STATUS_LABELS[req.status] || req.status }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-slate-500">{{ req.pharmacyName }} · {{ req.quantity }} {{ req.unit }}</p>
+              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded" [class]="URGENCY_COLORS[req.urgency] || ''">{{ URGENCY_LABELS[req.urgency] || req.urgency }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Quick Stats & Commissions -->
+    <div class="space-y-5">
+      <!-- Monthly overview -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <h3 class="font-semibold text-slate-900 mb-5">Aperçu du mois</h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Revenus</span>
+            <span class="text-sm font-bold text-slate-900">{{ monthlyRevenue() | fcfa }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Commandes</span>
+            <span class="text-sm font-bold text-slate-900">{{ monthlyOrders() }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Demandes</span>
+            <span class="text-sm font-bold text-slate-900">{{ monthlyRequests() }}</span>
+          </div>
+          <div class="pt-4 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-semibold text-slate-700">Croissance</span>
+              <span class="text-sm font-bold text-emerald-600">+12.5%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Commissions -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-semibold text-slate-900">Commissions</h3>
+          <a routerLink="/admin/commissions" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Détails →</a>
+        </div>
+        <div class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Total</span>
+            <span class="text-sm font-bold text-slate-900">{{ totalCommissionsAmount() | fcfa }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">En attente</span>
+            <span class="text-sm font-bold text-amber-600">{{ pendingCommissionsAmount() | fcfa }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Payées</span>
+            <span class="text-sm font-bold text-emerald-600">{{ totalCommissionsAmount() - pendingCommissionsAmount() | fcfa }}</span>
+          </div>
+          <div class="pt-2">
+            @if (totalCommissionsAmount() > 0) {
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500" [style.width.%]="(totalCommissionsAmount() - pendingCommissionsAmount()) / totalCommissionsAmount() * 100"></div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900">Commandes récentes</h3>
+      <a routerLink="/admin/orders" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">Voir tout →</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50">
+            <th class="px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Commande</th>
+            <th class="px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Pharmacie</th>
+            <th class="px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Grossiste</th>
+            <th class="px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Produit</th>
+            <th class="px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Montant</th>
+            <th class="px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Statut</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (order of recentOrders(); track order.id) {
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="px-6 py-4">
+                <span class="font-semibold text-slate-900">{{ order.id }}</span>
+              </td>
+              <td class="px-6 py-4 text-slate-600">{{ order.pharmacyName }}</td>
+              <td class="px-6 py-4 text-slate-600">{{ order.wholesalerName }}</td>
+              <td class="px-6 py-4">
+                <span class="text-slate-900 font-medium">{{ order.productName }}</span>
+                <span class="text-slate-400 ml-1">×{{ order.quantity }}</span>
+              </td>
+              <td class="px-6 py-4 font-semibold text-slate-900">{{ order.totalPrice | fcfa }}</td>
+              <td class="px-6 py-4">
+                <span class="text-xs px-2.5 py-1 rounded-full font-semibold" [class]="STATUS_COLORS[order.status] || 'bg-slate-100 text-slate-600'">
+                  {{ STATUS_LABELS[order.status] || order.status }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

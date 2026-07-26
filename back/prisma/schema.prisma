@@ -1,0 +1,816 @@
+// ============================================
+// PSR PharmaFlow — Bolamu
+// Schéma officiel — v2.0
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN
+  PHARMACY_ADMIN
+  PHARMACY_USER
+  WHOLESALER_ADMIN
+  WHOLESALER_USER
+  DELIVERY_ADMIN
+  DELIVERY_USER
+  DRIVER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum RequestStatus {
+  SEARCHING
+  FOUND
+  NOT_FOUND
+  EXPIRED
+  CANCELLED
+}
+
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  PAID
+  IN_PROGRESS
+  DELIVERED
+  COMPLETED
+  DISPUTED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MANUAL
+  MOBILE_MONEY
+  BANK_TRANSFER
+  CASH
+  PAWAYAY
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  ACCEPTED
+  AT_WHOLESALER
+  PICKED_UP
+  IN_TRANSIT
+  AT_PHARMACY
+  DELIVERED
+  COMPLETED
+  FAILED
+  RETURNED
+}
+
+enum DeliveryType {
+  STANDARD
+  EXPRESS
+  THERMOSENSITIVE
+  FRAGILE
+  URGENT
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+  TRIAL
+}
+
+enum NotificationType {
+  NEW_REQUEST
+  REQUEST_FOUND
+  REQUEST_EXPIRED
+  NEW_ORDER
+  ORDER_CONFIRMED
+  PAYMENT_RECEIVED
+  DELIVERY_ASSIGNED
+  DELIVERY_STATUS_UPDATE
+  NEW_MISSION
+  MISSION_CANCELLED
+  OTP_REMINDER
+  SYSTEM
+  SUBSCRIPTION_EXPIRING
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  VIEW
+  CONFIRM
+  CANCEL
+  ASSIGN
+  VERIFY_OTP
+  UPLOAD_PROOF
+  PAYMENT
+  EXPORT
+}
+
+enum TemperatureRange {
+  AMBIANT
+  REFRIGERATED
+  FROZEN
+}
+
+enum ResponseType {
+  VIEWED
+  CONFIRMED
+  DECLINED
+}
+
+// ============================================
+// 1. UTILISATEURS & AUTH
+// ============================================
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?    @unique
+  avatarUrl     String?
+  role          UserRole   @default(PHARMACY_USER)
+  status        UserStatus @default(PENDING_VERIFICATION)
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  emailVerified Boolean    @default(false)
+  phoneVerified Boolean    @default(false)
+  fcmToken      String?
+
+  pharmacyId        String?
+  pharmacy          Pharmacy?        @relation(fields: [pharmacyId], references: [id])
+  wholesalerId      String?
+  wholesaler        Wholesaler?      @relation(fields: [wholesalerId], references: [id])
+  deliveryCompanyId String?
+  deliveryCompany   DeliveryCompany? @relation(fields: [deliveryCompanyId], references: [id])
+  deliveryAgentId   String?          @unique
+  deliveryAgent     DeliveryAgent?   @relation(fields: [deliveryAgentId], references: [id])
+
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  sessions      UserSession[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([status])
+  @@index([pharmacyId])
+  @@index([wholesalerId])
+  @@index([deliveryCompanyId])
+  @@index([deliveryAgentId])
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  deviceInfo   String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+// ============================================
+// 2. GÉOGRAPHIE
+// ============================================
+
+model Country {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  phoneCode String
+  cities    City[]
+  createdAt DateTime @default(now())
+}
+
+model City {
+  id        String    @id @default(uuid())
+  name      String
+  code      String    @unique
+  countryId String
+  country   Country   @relation(fields: [countryId], references: [id])
+
+  pharmacies       Pharmacy[]
+  wholesalers      Wholesaler[]
+  deliveryCompanies DeliveryCompany[]
+  zones            Zone[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countryId])
+}
+
+model Zone {
+  id      String @id @default(uuid())
+  name    String
+  cityId  String
+  city    City   @relation(fields: [cityId], references: [id])
+  geoJson Json?
+
+  pharmacies   Pharmacy[]
+  deliveryFees DeliveryFee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cityId])
+}
+
+// ============================================
+// 3. PHARMACIES
+// ============================================
+
+model Pharmacy {
+  id             String   @id @default(uuid())
+  name           String
+  registration   String   @unique
+  licenseNumber  String?  @unique
+  address        String
+  addressDetail  Json?
+
+  cityId          String
+  city            City     @relation(fields: [cityId], references: [id])
+  zoneId          String?
+  zone            Zone?    @relation(fields: [zoneId], references: [id])
+
+  phone           String
+  phone2          String?
+  email           String
+  contactName     String
+  contactPhone    String?
+
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  rating          Float?   @default(5.0)
+  totalOrders     Int      @default(0)
+  totalRequests   Int      @default(0)
+
+  users           User[]
+  requests        Request[]
+  orders          Order[]
+  subscription    Subscription?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([cityId])
+  @@index([zoneId])
+  @@index([isActive])
+  @@index([isVerified])
+}
+
+// ============================================
+// 4. GROSSISTES
+// ============================================
+
+model Wholesaler {
+  id              String   @id @default(uuid())
+  name            String
+  registration    String   @unique
+  licenseNumber   String?  @unique
+  address         String
+  addressDetail   Json?
+
+  cityId          String
+  city            City     @relation(fields: [cityId], references: [id])
+
+  phone           String
+  phone2          String?
+  email           String
+  contactName     String
+  contactPhone    String?
+
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  responseRate    Float?   @default(0)
+  avgResponseTime Int?
+  totalOrders     Int      @default(0)
+  rating          Float?   @default(5.0)
+
+  users           User[]
+  requestsFound   Request[] @relation("FoundBy")
+  orders          Order[]
+  responses       RequestResponse[]
+  inventory       InventoryItem[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([cityId])
+  @@index([isActive])
+}
+
+// ============================================
+// 5. ENTREPRISES DE LIVRAISON
+// ============================================
+
+model DeliveryCompany {
+  id              String   @id @default(uuid())
+  name            String
+  registration    String   @unique
+  address         String?
+  addressDetail   Json?
+
+  cityId          String
+  city            City     @relation(fields: [cityId], references: [id])
+
+  phone           String
+  phone2          String?
+  email           String
+  contactName     String
+
+  paymentPhone    String?
+  paymentBank     Json?
+
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  totalMissions   Int      @default(0)
+  completionRate  Float?   @default(0)
+  avgDeliveryTime Int?
+  rating          Float?   @default(5.0)
+
+  users           User[]
+  agents          DeliveryAgent[]
+  deliveries      Delivery[]
+  deliveryFees    DeliveryFee[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([cityId])
+  @@index([isActive])
+}
+
+// ============================================
+// 6. LIVREURS
+// ============================================
+
+model DeliveryAgent {
+  id              String   @id @default(uuid())
+  firstName       String
+  lastName        String
+  phone           String   @unique
+  email           String?
+
+  idCardNumber    String?
+  idCardUrl       String?
+  licenseNumber   String?
+  licenseUrl      String?
+  photoUrl        String?
+
+  currentLatitude   Float?
+  currentLongitude  Float?
+  locationUpdatedAt DateTime?
+
+  isActive        Boolean  @default(true)
+  isOnline        Boolean  @default(false)
+  isOnMission     Boolean  @default(false)
+
+  fcmToken        String?
+  deviceId        String?
+
+  deliveryCompanyId String
+  deliveryCompany   DeliveryCompany @relation(fields: [deliveryCompanyId], references: [id])
+
+  user           User?
+  deliveries     Delivery[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([deliveryCompanyId])
+  @@index([phone])
+  @@index([isOnline])
+  @@index([isActive])
+}
+
+// ============================================
+// 7. PRODUITS & CATALOGUE
+// ============================================
+
+model ProductCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  icon        String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id            String    @id @default(uuid())
+  name          String
+  genericName   String?
+  description   String?
+  categoryId    String?
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+
+  dosage        String?
+  form          String?
+  temperature   TemperatureRange? @default(AMBIANT)
+  isPrescription Boolean   @default(false)
+
+  requests      Request[]
+  inventory     InventoryItem[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([name])
+}
+
+model InventoryItem {
+  id            String   @id @default(uuid())
+  wholesalerId  String
+  wholesaler    Wholesaler @relation(fields: [wholesalerId], references: [id])
+  productId     String
+  product       Product    @relation(fields: [productId], references: [id])
+
+  quantity      Int      @default(0)
+  unitPrice     Decimal  @db.Decimal(12,2)
+  isAvailable   Boolean  @default(true)
+
+  updatedAt     DateTime @updatedAt
+
+  @@unique([wholesalerId, productId])
+  @@index([wholesalerId])
+  @@index([productId])
+}
+
+// ============================================
+// 8. DEMANDES (REQUESTS) — CŒUR
+// ============================================
+
+model Request {
+  id            String        @id @default(uuid())
+  reference     String        @unique
+
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+
+  productName   String
+  productId     String?
+  product       Product?      @relation(fields: [productId], references: [id])
+  quantity      Int           @default(1)
+  dosage        String?
+  notes         String?
+
+  status        RequestStatus @default(SEARCHING)
+  foundById     String?
+  foundBy       Wholesaler?   @relation("FoundBy", fields: [foundById], references: [id])
+  foundAt       DateTime?
+
+  expiresAt     DateTime
+  cancelledAt   DateTime?
+  cancelReason  String?
+  cancelledById String?
+
+  isUrgent      Boolean       @default(false)
+
+  order         Order?
+  responses     RequestResponse[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([pharmacyId])
+  @@index([status])
+  @@index([foundById])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+model RequestResponse {
+  id            String       @id @default(uuid())
+  requestId     String
+  request       Request      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  wholesalerId  String
+  wholesaler    Wholesaler   @relation(fields: [wholesalerId], references: [id])
+  responseType  ResponseType
+  respondedAt   DateTime     @default(now())
+
+  @@index([requestId])
+  @@index([wholesalerId])
+}
+
+// ============================================
+// 9. COMMANDES
+// ============================================
+
+model Order {
+  id                String          @id @default(uuid())
+  reference         String          @unique
+
+  requestId         String          @unique
+  request           Request         @relation(fields: [requestId], references: [id])
+
+  pharmacyId        String
+  pharmacy          Pharmacy        @relation(fields: [pharmacyId], references: [id])
+
+  wholesalerId      String
+  wholesaler        Wholesaler      @relation(fields: [wholesalerId], references: [id])
+
+  productAmount     Decimal         @db.Decimal(12,2)
+  deliveryAmount    Decimal         @db.Decimal(12,2)
+  commissionAmount  Decimal         @default(0.00) @db.Decimal(12,2)
+  totalAmount       Decimal         @db.Decimal(12,2)
+
+  orderStatus       OrderStatus     @default(CREATED)
+  paymentStatus     PaymentStatus   @default(PENDING)
+  deliveryStatus    DeliveryStatus  @default(PENDING)
+
+  otpCode           String?         @db.VarChar(4)
+  otpExpiresAt      DateTime?
+  otpVerifiedAt     DateTime?
+  otpAttempts       Int             @default(0)
+
+  delivery          Delivery?
+  payment           Payment?
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([pharmacyId])
+  @@index([wholesalerId])
+  @@index([orderStatus])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+// ============================================
+// 10. LIVRAISONS
+// ============================================
+
+model Delivery {
+  id                  String         @id @default(uuid())
+
+  orderId             String         @unique
+  order               Order          @relation(fields: [orderId], references: [id])
+
+  deliveryCompanyId   String
+  deliveryCompany     DeliveryCompany @relation(fields: [deliveryCompanyId], references: [id])
+
+  deliveryAgentId     String?
+  deliveryAgent       DeliveryAgent?  @relation(fields: [deliveryAgentId], references: [id])
+
+  deliveryType        DeliveryType   @default(STANDARD)
+  status              DeliveryStatus @default(PENDING)
+
+  pickupOtpCode       String?        @db.VarChar(4)
+  pickupOtpExpiresAt  DateTime?
+  pickupOtpVerifiedAt DateTime?
+  pickupOtpAttempts   Int            @default(0)
+
+  assignedAt          DateTime?
+  acceptedAt          DateTime?
+  atWholesalerAt      DateTime?
+  pickedUpAt          DateTime?
+  inTransitAt         DateTime?
+  atPharmacyAt        DateTime?
+  deliveredAt         DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+
+  proofPhotoUrl       String?
+  pickupPhotoUrl      String?
+  signatureUrl        String?
+  deliveryNotes       String?
+  failureReason       String?
+
+  pickupLatitude      Float?
+  pickupLongitude     Float?
+  dropoffLatitude     Float?
+  dropoffLongitude    Float?
+
+  statusHistory       DeliveryStatusHistory[]
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([deliveryCompanyId])
+  @@index([deliveryAgentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DeliveryStatusHistory {
+  id          String         @id @default(uuid())
+  deliveryId  String
+  delivery    Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  status      DeliveryStatus
+  changedById String?
+  notes       String?
+  createdAt   DateTime       @default(now())
+
+  @@index([deliveryId])
+  @@index([createdAt])
+}
+
+// ============================================
+// 11. PAIEMENTS
+// ============================================
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+  amount        Decimal       @db.Decimal(12,2)
+  method        PaymentMethod @default(MANUAL)
+  status        PaymentStatus @default(PENDING)
+  transactionRef String?
+  paidById      String?
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// 12. FRAIS DE LIVRAISON
+// ============================================
+
+model DeliveryFee {
+  id                String           @id @default(uuid())
+  zoneId            String
+  zone              Zone             @relation(fields: [zoneId], references: [id])
+  deliveryCompanyId String?
+  deliveryCompany   DeliveryCompany? @relation(fields: [deliveryCompanyId], references: [id])
+
+  baseAmount        Decimal          @db.Decimal(12,2)
+  expressAmount     Decimal?         @db.Decimal(12,2)
+  thermoAmount      Decimal?         @db.Decimal(12,2)
+  isActive          Boolean          @default(true)
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([zoneId, deliveryCompanyId])
+  @@index([zoneId])
+}
+
+// ============================================
+// 13. COMMISSIONS CONFIGURABLES
+// ============================================
+
+model CommissionRule {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+
+  productPercent  Decimal   @db.Decimal(5,2)
+  deliveryPercent Decimal   @db.Decimal(5,2)
+  fixedFee        Decimal?  @db.Decimal(12,2)
+
+  minAmount       Decimal?  @db.Decimal(12,2)
+  maxAmount       Decimal?  @db.Decimal(12,2)
+
+  isActive        Boolean   @default(true)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+
+  createdById     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([effectiveFrom])
+}
+
+// ============================================
+// 14. ABONNEMENTS
+// ============================================
+
+model Subscription {
+  id            String             @id @default(uuid())
+  pharmacyId    String             @unique
+  pharmacy      Pharmacy           @relation(fields: [pharmacyId], references: [id])
+  plan          SubscriptionPlan   @default(BASIC)
+  price         Decimal            @db.Decimal(12,2)
+  startDate     DateTime
+  endDate       DateTime
+  status        SubscriptionStatus @default(TRIAL)
+  lastPaymentAt DateTime?
+  nextPaymentAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([pharmacyId])
+  @@index([status])
+}
+
+// ============================================
+// 15. NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  payload   Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  pushSent  Boolean          @default(false)
+  pushSentAt DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================
+// 16. JOURNAL D'AUDIT
+// ============================================
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  action     AuditAction
+  entityType String
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// 17. PARAMÈTRES SYSTÈME
+// ============================================
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  type        String
+  description String?
+  isEditable  Boolean  @default(true)
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}

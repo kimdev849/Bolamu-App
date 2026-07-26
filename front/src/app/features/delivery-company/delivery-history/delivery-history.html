@@ -1,0 +1,35 @@
+<div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <div>
+    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Historique</h1>
+    <p class="text-sm text-slate-500 mt-1">{{ history().length }} livraisons effectuées · {{ totalRevenue.toLocaleString() }} FCFA</p>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200">
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Commande</th>
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Pharmacie</th>
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Produit</th>
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Montant</th>
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (h of history(); track h.id) {
+            <tr class="hover:bg-slate-50/50">
+              <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ h.id }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ h.pharmacyName }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ h.productName }}</td>
+              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ h.totalPrice | number }} FCFA</td>
+              <td class="px-5 py-4 text-xs text-slate-500">{{ h.updatedAt | date:'dd/MM/yyyy' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="px-5 py-12 text-center text-sm text-slate-400">Aucun historique</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

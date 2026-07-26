@@ -1,0 +1,197 @@
+<div class="w-full">
+  <div class="text-center mb-6">
+    <div class="flex items-center justify-center gap-3 mb-4 lg:hidden">
+      <a routerLink="/"><img src="/logo.png" alt="Bolamu" class="w-10 h-10 rounded-xl shadow-lg ring-2 ring-indigo-100" /></a>
+    </div>
+    <h2 class="text-2xl font-bold text-slate-900">Créer un compte</h2>
+    <p class="text-slate-500 mt-1">Rejoignez le réseau professionnel Bolamu</p>
+  </div>
+
+  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-4">
+
+    <!-- Type de compte — icônes SVG pro -->
+    <div>
+      <label class="block text-sm font-semibold text-slate-700 mb-2">Type de compte</label>
+      <div class="grid grid-cols-3 gap-2">
+        @for (role of roles; track role.value) {
+          <button type="button" (click)="selectedRole.set(role.value)"
+            class="px-3 py-3 rounded-xl border-2 text-center transition-all duration-200"
+            [class.border-indigo-500]="selectedRole() === role.value"
+            [class.bg-indigo-50]="selectedRole() === role.value"
+            [class.border-slate-200]="selectedRole() !== role.value"
+            [class.hover:border-indigo-300]="selectedRole() !== role.value"
+            [class.hover:bg-indigo-50/50]="selectedRole() !== role.value"
+          >
+            <svg class="w-6 h-6 mx-auto mb-1.5" [class.text-indigo-600]="selectedRole() === role.value" [class.text-slate-400]="selectedRole() !== role.value" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="role.icon" />
+            </svg>
+            <span class="block text-xs font-semibold" [class.text-indigo-700]="selectedRole() === role.value" [class.text-slate-700]="selectedRole() !== role.value">{{ role.label }}</span>
+            <span class="block text-[10px] mt-0.5" [class.text-indigo-600]="selectedRole() === role.value" [class.text-slate-400]="selectedRole() !== role.value">{{ role.desc }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="firstName" class="block text-sm font-semibold text-slate-700 mb-1.5">Prénom</label>
+        <input id="firstName" type="text" [formControl]="getControl('firstName')" placeholder="Jean"
+          class="w-full px-3.5 py-2.5 rounded-xl border text-sm placeholder:text-slate-400 outline-none transition-all duration-200"
+          [class.border-slate-200]="!getControl('firstName').invalid || !getControl('firstName').touched"
+          [class.border-red-300]="getControl('firstName').invalid && getControl('firstName').touched"
+          [class.bg-red-50]="getControl('firstName').invalid && getControl('firstName').touched"
+          [class.focus:border-indigo-400]="!getControl('firstName').invalid || !getControl('firstName').touched"
+          [class.focus:ring-2]="!getControl('firstName').invalid || !getControl('firstName').touched"
+          [class.focus:ring-indigo-500/30]="!getControl('firstName').invalid || !getControl('firstName').touched"
+        />
+        @if (getControl('firstName').invalid && getControl('firstName').touched) {
+          <p class="mt-1 text-xs text-red-500 font-medium">Prénom requis (min. 2 caractères)</p>
+        }
+      </div>
+      <div>
+        <label for="lastName" class="block text-sm font-semibold text-slate-700 mb-1.5">Nom</label>
+        <input id="lastName" type="text" [formControl]="getControl('lastName')" placeholder="Mbiock"
+          class="w-full px-3.5 py-2.5 rounded-xl border text-sm placeholder:text-slate-400 outline-none transition-all duration-200"
+          [class.border-slate-200]="!getControl('lastName').invalid || !getControl('lastName').touched"
+          [class.border-red-300]="getControl('lastName').invalid && getControl('lastName').touched"
+          [class.bg-red-50]="getControl('lastName').invalid && getControl('lastName').touched"
+          [class.focus:border-indigo-400]="!getControl('lastName').invalid || !getControl('lastName').touched"
+          [class.focus:ring-2]="!getControl('lastName').invalid || !getControl('lastName').touched"
+          [class.focus:ring-indigo-500/30]="!getControl('lastName').invalid || !getControl('lastName').touched"
+        />
+        @if (getControl('lastName').invalid && getControl('lastName').touched) {
+          <p class="mt-1 text-xs text-red-500 font-medium">Nom requis (min. 2 caractères)</p>
+        }
+      </div>
+    </div>
+
+    <div>
+      <label for="email" class="block text-sm font-semibold text-slate-700 mb-1.5">Adresse email</label>
+      <input id="email" type="email" [formControl]="getControl('email')" placeholder="exemple@email.com"
+        class="w-full px-3.5 py-2.5 rounded-xl border text-sm placeholder:text-slate-400 outline-none transition-all duration-200"
+        [class.border-slate-200]="!getControl('email').invalid || !getControl('email').touched"
+        [class.border-red-300]="getControl('email').invalid && getControl('email').touched"
+        [class.bg-red-50]="getControl('email').invalid && getControl('email').touched"
+        [class.focus:border-indigo-400]="!getControl('email').invalid || !getControl('email').touched"
+        [class.focus:ring-2]="!getControl('email').invalid || !getControl('email').touched"
+        [class.focus:ring-indigo-500/30]="!getControl('email').invalid || !getControl('email').touched"
+      />
+      @if (getControl('email').invalid && getControl('email').touched) {
+        <p class="mt-1 text-xs text-red-500 font-medium">
+          @if (getControl('email').errors?.['required']) { L'email est requis }
+          @if (getControl('email').errors?.['email']) { Format d'email invalide }
+        </p>
+      }
+    </div>
+
+    <div>
+      <label for="phone" class="block text-sm font-semibold text-slate-700 mb-1.5">Téléphone</label>
+      <input id="phone" type="tel" [formControl]="getControl('phone')" placeholder="+237 6XX XXX XXX"
+        class="w-full px-3.5 py-2.5 rounded-xl border text-sm placeholder:text-slate-400 outline-none transition-all duration-200"
+        [class.border-slate-200]="!getControl('phone').invalid || !getControl('phone').touched"
+        [class.border-red-300]="getControl('phone').invalid && getControl('phone').touched"
+        [class.bg-red-50]="getControl('phone').invalid && getControl('phone').touched"
+        [class.focus:border-indigo-400]="!getControl('phone').invalid || !getControl('phone').touched"
+        [class.focus:ring-2]="!getControl('phone').invalid || !getControl('phone').touched"
+        [class.focus:ring-indigo-500/30]="!getControl('phone').invalid || !getControl('phone').touched"
+      />
+      @if (getControl('phone').invalid && getControl('phone').touched) {
+        <p class="mt-1 text-xs text-red-500 font-medium">Numéro de téléphone invalide</p>
+      }
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="password" class="block text-sm font-semibold text-slate-700 mb-1.5">Mot de passe</label>
+        <div class="relative">
+          <input id="password" [type]="showPassword() ? 'text' : 'password'" [formControl]="getControl('password')" placeholder="••••••••"
+            class="w-full px-3.5 py-2.5 rounded-xl border text-sm placeholder:text-slate-400 outline-none transition-all duration-200"
+            [class.border-slate-200]="!getControl('password').invalid || !getControl('password').touched"
+            [class.border-red-300]="getControl('password').invalid && getControl('password').touched"
+            [class.bg-red-50]="getControl('password').invalid && getControl('password').touched"
+            [class.focus:border-indigo-400]="!getControl('password').invalid || !getControl('password').touched"
+            [class.focus:ring-2]="!getControl('password').invalid || !getControl('password').touched"
+            [class.focus:ring-indigo-500/30]="!getControl('password').invalid || !getControl('password').touched"
+          />
+          <button type="button" (click)="showPassword.set(!showPassword())" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+            @if (showPassword()) {
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            } @else {
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+            }
+          </button>
+        </div>
+        @if (getControl('password').invalid && getControl('password').touched) {
+          <p class="mt-1 text-xs text-red-500 font-medium">
+            @if (getControl('password').errors?.['required']) { Mot de passe requis }
+            @if (getControl('password').errors?.['weakPassword']) { {{ getControl('password').errors?.['weakPassword'] }} }
+          </p>
+        }
+      </div>
+      <div>
+        <label for="confirmPassword" class="block text-sm font-semibold text-slate-700 mb-1.5">Confirmer</label>
+        <div class="relative">
+          <input id="confirmPassword" [type]="showConfirmPassword() ? 'text' : 'password'" [formControl]="getControl('confirmPassword')" placeholder="••••••••"
+            class="w-full px-3.5 py-2.5 rounded-xl border text-sm placeholder:text-slate-400 outline-none transition-all duration-200"
+            [class.border-slate-200]="!getControl('confirmPassword').invalid || !getControl('confirmPassword').touched"
+            [class.border-red-300]="getControl('confirmPassword').invalid && getControl('confirmPassword').touched"
+            [class.bg-red-50]="getControl('confirmPassword').invalid && getControl('confirmPassword').touched"
+            [class.focus:border-indigo-400]="!getControl('confirmPassword').invalid || !getControl('confirmPassword').touched"
+            [class.focus:ring-2]="!getControl('confirmPassword').invalid || !getControl('confirmPassword').touched"
+            [class.focus:ring-indigo-500/30]="!getControl('confirmPassword').invalid || !getControl('confirmPassword').touched"
+          />
+          <button type="button" (click)="showConfirmPassword.set(!showConfirmPassword())" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+            @if (showConfirmPassword()) {
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            } @else {
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+            }
+          </button>
+        </div>
+        @if (getControl('confirmPassword').invalid && getControl('confirmPassword').touched) {
+          <p class="mt-1 text-xs text-red-500 font-medium">
+            @if (getControl('confirmPassword').errors?.['required']) { Confirmation requise }
+            @if (registerForm.errors?.['mismatch']) { Les mots de passe ne correspondent pas }
+          </p>
+        }
+      </div>
+    </div>
+
+    <label class="flex items-start gap-2.5 cursor-pointer group">
+      <input type="checkbox" [formControl]="getControl('acceptTerms')" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-teal-500 cursor-pointer" />
+      <span class="text-xs text-slate-500 group-hover:text-slate-700 transition-colors">J'accepte les <a href="#" class="text-indigo-600 hover:text-indigo-700 font-medium hover:underline">conditions d'utilisation</a> et la <a href="#" class="text-indigo-600 hover:text-indigo-700 font-medium hover:underline">politique de confidentialité</a></span>
+    </label>
+    @if (getControl('acceptTerms').invalid && getControl('acceptTerms').touched) {
+      <p class="text-xs text-red-500 font-medium">Vous devez accepter les conditions</p>
+    }
+
+    <button type="submit" [disabled]="isLoading()" class="btn-primary w-full">
+      @if (isLoading()) {
+        <svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        <span>Inscription en cours...</span>
+      } @else {
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+        <span>Créer mon compte</span>
+      }
+    </button>
+
+    <p class="text-center text-sm text-slate-500">
+      Déjà un compte ? <a routerLink="/auth/login" class="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">Se connecter</a>
+    </p>
+  </form>
+</div>

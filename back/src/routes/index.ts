@@ -1,0 +1,20 @@
+import { Router } from 'express';
+import authRoutes from './auth';
+import adminRoutes from './admin';
+import pharmacyRoutes from './pharmacies';
+import wholesalerRoutes from './wholesalers';
+import deliveryCompanyRoutes from './delivery-companies';
+import requestRoutes from './requests';
+import orderRoutes from './orders';
+
+const router = Router();
+
+router.use('/auth', authRoutes);
+router.use('/admin', adminRoutes);
+router.use('/pharmacies', pharmacyRoutes);
+router.use('/wholesalers', wholesalerRoutes);
+router.use('/delivery-companies', deliveryCompanyRoutes);
+router.use('/requests', requestRoutes);
+router.use('/orders', orderRoutes);
+
+export default router;

@@ -1,0 +1,36 @@
+<div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <div>
+    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Missions de livraison</h1>
+    <p class="text-sm text-slate-500 mt-1">{{ deliveries().length }} missions</p>
+  </div>
+
+  <div class="space-y-3">
+    @for (d of deliveries(); track d.id) {
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:border-indigo-200 transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center">
+              <svg class="w-5 h-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-900">Commande {{ d.id }}</p>
+              <p class="text-xs text-slate-400">{{ d.productName }} · {{ d.pharmacyName }}</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[d.deliveryStatus || ''] || 'bg-slate-100 text-slate-500'">{{ STATUS_LABELS[d.deliveryStatus || ''] || d.deliveryStatus }}</span>
+        </div>
+
+        @if (d.deliveryStatus !== 'delivered') {
+          <div class="flex gap-2 mt-3">
+            @if (d.deliveryStatus === 'pending') { <button (click)="updateStatus(d.id, 'assigned')" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Assigner</button> }
+            @if (d.deliveryStatus === 'assigned') { <button (click)="updateStatus(d.id, 'picked_up')" class="px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700">Marquer récupéré</button> }
+            @if (d.deliveryStatus === 'picked_up') { <button (click)="updateStatus(d.id, 'in_transit')" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700">En transit</button> }
+            @if (d.deliveryStatus === 'in_transit') { <button (click)="updateStatus(d.id, 'delivered')" class="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Marquer livré</button> }
+          </div>
+        }
+      </div>
+    } @empty {
+      <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center"><p class="text-sm text-slate-400">Aucune mission de livraison</p></div>
+    }
+  </div>
+</div>

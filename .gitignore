@@ -1,44 +1,47 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# ──────────────────────────────────
+# Node / Angular / NestJS / Prisma
+# ──────────────────────────────────
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+node_modules/
+dist/
+tmp/
+out-tsc/
+bazel-out/
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# Angular
+.angular/cache/
+.angular/
 
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# Visual Studio Code
+# IDE
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-!.vscode/mcp.json
-.history/*
+.idea/
+*.swp
+*.swo
+*~
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-__screenshots__/
-
-# System files
+# OS
 .DS_Store
 Thumbs.db
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+back/node_modules/.prisma/
+
+# Test coverage
+coverage/
+__screenshots__/
+
+# Misc
+*.tgz
+*.gz
+.eslintcache
+nul

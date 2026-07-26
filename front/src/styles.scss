@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   Bolamu — Charte graphique
+   Palette indigo professionnelle
+   ============================================ */
+
+:root {
+  /* Primaire — Indigo pur (pas de vert mélangé) */
+  --bolamu-50: #eef2ff;
+  --bolamu-100: #e0e7ff;
+  --bolamu-200: #c7d2fe;
+  --bolamu-300: #a5b4fc;
+  --bolamu-400: #818cf8;
+  --bolamu-500: #6366f1;
+  --bolamu-600: #4f46e5;
+  --bolamu-700: #4338ca;
+  --bolamu-800: #3730a3;
+  --bolamu-900: #312e81;
+
+  /* Surface */
+  --bolamu-surface: #ffffff;
+  --bolamu-surface-secondary: #f8fafc;
+  --bolamu-surface-tertiary: #f1f5f9;
+
+  /* Texte */
+  --bolamu-text-primary: #0f172a;
+  --bolamu-text-secondary: #475569;
+  --bolamu-text-tertiary: #94a3b8;
+
+  /* Bordures */
+  --bolamu-border: #e2e8f0;
+  --bolamu-border-light: #f1f5f9;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  ::selection {
+    @apply bg-indigo-100 text-indigo-900;
+  }
+}
+
+@layer components {
+  /* Fond dégradé auth */
+  .auth-gradient {
+    background: linear-gradient(160deg, #1e1b4b 0%, #312e81 25%, #3730a3 50%, #4338ca 75%, #4f46e5 100%);
+  }
+
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-100 text-emerald-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-100 text-amber-700;
+  }
+
+  .badge-error {
+    @apply badge bg-red-100 text-red-700;
+  }
+
+  .badge-info {
+    @apply badge bg-indigo-100 text-indigo-700;
+  }
+
+  .badge-neutral {
+    @apply badge bg-slate-100 text-slate-600;
+  }
+
+  /* Bouton principal — indigo pur, pas de teal */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white
+      bg-gradient-to-r from-indigo-700 to-indigo-600 hover:from-indigo-800 hover:to-indigo-700
+      active:from-indigo-900 active:to-indigo-800
+      disabled:opacity-50 disabled:cursor-not-allowed
+      shadow-lg shadow-indigo-600/25 hover:shadow-xl hover:shadow-indigo-600/30
+      transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+      bg-white text-slate-700 border border-slate-200
+      hover:bg-slate-50 hover:border-slate-300
+      active:bg-slate-100
+      disabled:opacity-50 disabled:cursor-not-allowed
+      transition-all duration-200;
+  }
+
+  /* Input — focus ring indigo */
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border text-sm placeholder:text-slate-400
+      bg-white border-slate-200
+      focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400
+      transition-all duration-200;
+  }
+
+  .input-field-error {
+    @apply input-field border-red-300 bg-red-50 focus:ring-red-500/30 focus:border-red-400;
+  }
+
+  /* Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Animations */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .slide-down {
+    animation: slideDown 0.2s ease-out;
+    overflow: hidden;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; max-height: 0; }
+    to { opacity: 1; max-height: 200px; }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
