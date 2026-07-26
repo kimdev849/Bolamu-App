@@ -101,38 +101,4 @@ export class Login {
     return this.loginForm.get('password') as FormControl;
   }
 
-  directLogin(email: string, password: string): void {
-    this.isLoading.set(true);
-
-    this.api.login(email, password)
-      .pipe(finalize(() => this.isLoading.set(false)))
-      .subscribe({
-        next: (res) => {
-          const { user, tokens } = res.data;
-          this.token.setTokens(tokens.accessToken, tokens.refreshToken);
-          const frontendRole = this.roleMap[user.role] || 'admin';
-          const frontendUser = {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            role: frontendRole as any,
-            isActive: user.status === 'ACTIVE',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          this.auth.setUser(frontendUser);
-          this.toast.success('Connexion réussie', `Bienvenue ${user.firstName} ${user.lastName}`);
-          const routes: Record<string, string> = {
-            admin: '/admin/dashboard',
-            pharmacy: '/pharmacy/dashboard',
-            wholesaler: '/wholesaler/dashboard',
-            delivery_company: '/delivery/dashboard',
-          };
-          this.router.navigate([routes[frontendRole] || '/']);
-        },
-        error: () => this.toast.error('Erreur', 'Impossible de se connecter au serveur'),
-      });
-  }
 }
