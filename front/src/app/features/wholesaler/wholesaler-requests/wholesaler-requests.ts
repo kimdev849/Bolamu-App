@@ -1,8 +1,11 @@
-import { Component, signal, computed, effect } from '@angular/core';
-import { mockRequests, mockOrders, mockPharmacies } from '../../../core/mock/db';
-import { STATUS_LABELS, STATUS_COLORS, URGENCY_LABELS, URGENCY_COLORS, getDeliveryFee, getCommission } from '../../../core/config/app.constants';
-import type { ProductRequest, RequestResponse } from '../../../core/models/request';
-import type { Order } from '../../../core/models/misc';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { STATUS_LABELS, STATUS_COLORS, URGENCY_LABELS, URGENCY_COLORS } from '../../../core/config/app.constants';
+import { Api } from '../../../core/services/api';
+
+const DELIVERY_FEES: Record<string, number> = {
+  'Brazzaville': 1000, 'Pointe-Noire': 1500, 'Talangaï': 1500,
+  'Ouenzé': 1500, 'Mfilou': 2000, 'Madingou': 2500,
+};
 
 @Component({
   selector: 'psr-wholesaler-requests',
@@ -10,166 +13,152 @@ import type { Order } from '../../../core/models/misc';
   templateUrl: './wholesaler-requests.html',
   styleUrl: './wholesaler-requests.scss',
 })
-export class WholesalerRequests {
-  readonly wholesalerId = 'WH-001';
-  readonly wholesalerName = 'DistriPharm Cameroun';
+export class WholesalerRequests implements OnInit, OnDestroy {
+  private readonly api = inject(Api);
 
-  // Données
-  readonly requests = signal(
-    mockRequests.filter(r =>
-      r.status === 'searching' ||
-      r.status === 'found' ||
-      r.status === 'confirmed' ||
-      r.responses?.some(rs => rs.wholesalerId === this.wholesalerId)
-    )
-  );
-
-  readonly orders = signal(mockOrders.filter(o => o.wholesalerId === this.wholesalerId));
-  readonly selectedFilter = signal<string>('all');
-
-  readonly filteredRequests = computed(() => {
-    const f = this.selectedFilter();
-    return f === 'all' ? this.requests() : this.requests().filter(r => r.status === f);
-  });
-
-  // Gestion de l'expansion inline par ID de demande
+  readonly requests = signal<any[]>([]);
+  readonly selectedFilter = signal('all');
+  readonly filteredRequests = signal<any[]>([]);
   readonly expandedId = signal<string | null>(null);
+  readonly timers = signal<Record<string, string>>({});
   readonly inlinePrice = signal(0);
 
-  // Timers FCFS
-  readonly timers = signal<Record<string, string>>({});
+  readonly wholesalerId = `WS-${Date.now()}`;
 
-  constructor() {
-    effect((onCleanup) => {
-      const searching = this.requests().filter(r => r.status === 'searching');
-      if (searching.length === 0) { this.timers.set({}); return; }
+  private allRequests: any[] = [];
+  private orders: any[] = [];
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
-      const updateTimers = () => {
-        const newTimers: Record<string, string> = {};
-        for (const r of searching) {
-          const remaining = Math.max(0, 30 * 60 * 1000 - (Date.now() - new Date(r.createdAt).getTime()));
-          if (remaining <= 0) {
-            newTimers[r.id] = 'Expiré';
-            this.requests.set(this.requests().map(req =>
-              req.id === r.id ? { ...req, status: 'expired' as const } : req
-            ));
-            continue;
-          }
-          const mins = Math.floor(remaining / 60000);
-          const secs = Math.floor((remaining % 60000) / 1000);
-          newTimers[r.id] = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        }
-        this.timers.set(newTimers);
-      };
+  protected readonly STATUS_LABELS = STATUS_LABELS;
+  protected readonly STATUS_COLORS = STATUS_COLORS;
+  protected readonly URGENCY_LABELS = URGENCY_LABELS;
+  protected readonly URGENCY_COLORS = URGENCY_COLORS;
 
-      updateTimers();
-      const interval = setInterval(updateTimers, 1000);
-      onCleanup(() => clearInterval(interval));
+  ngOnInit(): void {
+    this.api.getMyWholesalerRequests().subscribe({
+      next: (res) => {
+        this.allRequests = (res.data || []).map((r: any) => ({
+          ...r,
+          status: (r.status || 'searching').toLowerCase(),
+          urgent: r.urgency === 'emergency' || r.urgency === 'high',
+          responses: r.responses || [],
+          createdAt: r.createdAt || new Date().toISOString(),
+          pharmacyCity: this.getPharmacyCity(r.pharmacyId),
+        }));
+        this.applyFilter();
+        this.startTimers();
+      },
+    });
+    this.api.getOrders({ limit: 100 }).subscribe({
+      next: (res) => { this.orders = res.data || []; },
     });
   }
 
-  readonly STATUS_LABELS = STATUS_LABELS;
-  readonly STATUS_COLORS = STATUS_COLORS;
-  readonly URGENCY_LABELS = URGENCY_LABELS;
-  readonly URGENCY_COLORS = URGENCY_COLORS;
+  ngOnDestroy(): void {
+    if (this.intervalId) clearInterval(this.intervalId);
+  }
+
+  private startTimers(): void {
+    const update = () => {
+      const now = Date.now();
+      const newTimers: Record<string, string> = {};
+      for (const r of this.allRequests) {
+        if (r.status !== 'searching') continue;
+        const elapsed = now - new Date(r.createdAt).getTime();
+        const remaining = Math.max(0, 30 * 60 * 1000 - elapsed);
+        if (remaining <= 0) {
+          newTimers[r.id] = 'Expiré';
+          this.allRequests = this.allRequests.map(req =>
+            req.id === r.id ? { ...req, status: 'expired' } : req
+          );
+        } else {
+          const m = Math.floor(remaining / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+          newTimers[r.id] = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+      }
+      this.timers.set(newTimers);
+    };
+    update();
+    this.intervalId = setInterval(update, 1000);
+  }
 
   filterBy(f: string): void {
     this.selectedFilter.set(f);
+    this.applyFilter();
   }
 
-  /** Récupère la ville de la pharmacie pour calculer les frais de livraison */
-  getPharmacyCity(pharmacyId: string): string {
-    return mockPharmacies.find(p => p.id === pharmacyId)?.city || 'Douala';
+  private applyFilter(): void {
+    const f = this.selectedFilter();
+    this.filteredRequests.set(
+      f === 'all' ? [...this.allRequests] : this.allRequests.filter((r: any) => r.status === f)
+    );
   }
 
-  /** Calcule le delivery fee selon la ville de la pharmacie */
-  calcDeliveryFee(pharmacyId: string): number {
-    return getDeliveryFee(this.getPharmacyCity(pharmacyId));
+  expandCard(r: any): void {
+    this.expandedId.set(r.id === this.expandedId() ? null : r.id);
+    this.inlinePrice.set(0);
   }
 
-  /** Ouvre le panneau inline pour fixer le prix du médicament uniquement */
-  expandCard(request: ProductRequest): void {
-    if (this.expandedId() === request.id) {
-      this.expandedId.set(null);
-      return;
-    }
-    this.expandedId.set(request.id);
-    this.inlinePrice.set(Math.floor(Math.random() * 100) + 200);
-  }
-
-  /** Confirme l'acceptation (FCFS) — le delivery fee est auto-calculé par PSR */
-  confirmAccept(request: ProductRequest): void {
-    if (request.status !== 'searching') {
-      this.expandedId.set(null);
-      return; // FCFS lock
-    }
-
-    const foundPrice = this.inlinePrice();
-    const deliveryPrice = this.calcDeliveryFee(request.pharmacyId);
-    const commissionAmount = getCommission(foundPrice * request.quantity);
-
-    const response: RequestResponse = {
-      id: 'RS-' + Date.now().toString(36).toUpperCase(),
+  confirmAccept(r: any): void {
+    const price = this.inlinePrice();
+    if (price <= 0) return;
+    const response = {
+      id: `RESP-${Date.now()}`,
+      requestId: r.id,
       wholesalerId: this.wholesalerId,
-      wholesalerName: this.wholesalerName,
       type: 'accepted',
-      price: foundPrice,
-      availableQuantity: request.quantity,
-      estimatedDeliveryDays: Math.floor(Math.random() * 3) + 1,
+      unitPrice: price,
       createdAt: new Date().toISOString(),
     };
-
-    // Verrouillage FCFS
-    this.requests.set(this.requests().map(r =>
-      r.id === request.id
-        ? { ...r, status: 'found' as const, foundById: this.wholesalerId, foundAt: new Date().toISOString(), foundPrice, deliveryPrice, responses: [...(r.responses || []), response] }
-        : r
-    ));
-
-    // Création commande
-    const total = foundPrice * request.quantity + deliveryPrice + commissionAmount;
-    this.orders.set([{
-      id: 'ORD-' + Date.now().toString(36).toUpperCase(),
-      requestId: request.id,
-      pharmacyId: request.pharmacyId,
-      pharmacyName: request.pharmacyName,
-      wholesalerId: this.wholesalerId,
-      wholesalerName: this.wholesalerName,
-      productName: request.productName,
-      productCode: request.productCode,
-      dosage: request.dosage,
-      quantity: request.quantity,
-      unit: request.unit,
-      unitPrice: foundPrice,
-      deliveryPrice,
-      totalPrice: total,
-      status: 'created',
-      paymentStatus: 'unpaid',
+    this.allRequests = this.allRequests.map(req =>
+      req.id === r.id ? { ...req, status: 'found', foundById: this.wholesalerId, responses: [...(req.responses || []), response] } : req
+    );
+    const order = {
+      id: `ORD-${Date.now()}`,
+      requestId: r.id,
+      productName: r.productName,
+      quantity: r.quantity,
+      unit: r.unit,
+      unitPrice: price,
+      deliveryPrice: this.calcDeliveryFee(r.pharmacyId),
+      totalPrice: price * r.quantity + this.calcDeliveryFee(r.pharmacyId),
+      status: 'CREATED',
+      pharmacyName: r.pharmacyName,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } as Order, ...this.orders()]);
-
+    };
+    this.orders = [order, ...this.orders];
     this.expandedId.set(null);
+    this.applyFilter();
   }
 
-  /** Décliner la demande */
-  declineRequest(request: ProductRequest): void {
-    this.requests.set(this.requests().map(r =>
-      r.id === request.id
-        ? { ...r, responses: [...(r.responses || []), { id: 'RS-' + Date.now().toString(36).toUpperCase(), wholesalerId: this.wholesalerId, wholesalerName: this.wholesalerName, type: 'declined' as const, createdAt: new Date().toISOString() }] }
-        : r
-    ));
+  declineRequest(r: any): void {
+    this.allRequests = this.allRequests.map(req =>
+      req.id === r.id ? { ...req, responses: [...(req.responses || []), { id: `RESP-${Date.now()}`, requestId: r.id, wholesalerId: this.wholesalerId, type: 'declined', createdAt: new Date().toISOString() }] } : req
+    );
+    this.applyFilter();
   }
 
   hasResponded(requestId: string): boolean {
-    return this.requests().find(r => r.id === requestId)?.responses?.some(rs => rs.wholesalerId === this.wholesalerId) ?? false;
+    const r = this.allRequests.find((req: any) => req.id === requestId);
+    return r?.responses?.some((rs: any) => rs.wholesalerId === this.wholesalerId) || false;
   }
 
-  getMyResponse(requestId: string): RequestResponse | undefined {
-    return this.requests().find(r => r.id === requestId)?.responses?.find(rs => rs.wholesalerId === this.wholesalerId);
+  getMyResponse(requestId: string): any {
+    const r = this.allRequests.find((req: any) => req.id === requestId);
+    return r?.responses?.find((rs: any) => rs.wholesalerId === this.wholesalerId);
   }
 
-  getOrderForRequest(requestId: string): Order | undefined {
-    return this.orders().find(o => o.requestId === requestId);
+  getOrderForRequest(requestId: string): any {
+    return this.orders.find((o: any) => o.requestId === requestId);
+  }
+
+  calcDeliveryFee(pharmacyId: string): number {
+    const city = this.getPharmacyCity(pharmacyId);
+    return DELIVERY_FEES[city] || 1500;
+  }
+
+  getPharmacyCity(pharmacyId: string): string {
+    return 'Brazzaville';
   }
 }

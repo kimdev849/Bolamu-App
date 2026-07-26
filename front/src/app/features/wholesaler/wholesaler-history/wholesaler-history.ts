@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { mockOrders } from '../../../core/mock/db';
+import { Api } from '../../../core/services/api';
 import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants';
 
 @Component({
@@ -9,11 +9,27 @@ import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants
   templateUrl: './wholesaler-history.html',
   styleUrl: './wholesaler-history.scss',
 })
-export class WholesalerHistory {
-  readonly history = signal(mockOrders.filter(o => o.wholesalerId === 'WH-001' && (o.status === 'delivered' || o.status === 'cancelled')));
-  readonly STATUS_LABELS = STATUS_LABELS;
-  readonly STATUS_COLORS = STATUS_COLORS;
+export class WholesalerHistory implements OnInit {
+  private readonly api = inject(Api);
 
-  get totalDelivered() { return this.history().filter(o => o.status === 'delivered').length; }
-  get totalRevenue() { return this.history().filter(o => o.status === 'delivered').reduce((s, o) => s + o.totalPrice, 0); }
+  readonly history = signal<any[]>([]);
+
+  totalDelivered = 0;
+  totalRevenue = 0;
+
+  protected readonly STATUS_LABELS = STATUS_LABELS;
+  protected readonly STATUS_COLORS = STATUS_COLORS;
+
+  ngOnInit(): void {
+    this.api.getOrders({ limit: 100 }).subscribe({
+      next: (res) => {
+        const delivered = (res.data || []).filter((o: any) =>
+          o.orderStatus === 'DELIVERED' || o.deliveryStatus === 'delivered'
+        );
+        this.history.set(delivered);
+        this.totalDelivered = delivered.length;
+        this.totalRevenue = delivered.reduce((s: number, o: any) => s + (o.totalAmount || 0), 0);
+      },
+    });
+  }
 }

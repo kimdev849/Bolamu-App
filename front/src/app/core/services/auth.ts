@@ -9,6 +9,9 @@ export class Auth {
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly isLoggedIn = signal(this.getStoredUser() !== null);
 
+  /** Convenience getter for components using the template `user()` syntax */
+  get user() { return this.currentUser; }
+
   private getStoredUser(): User | null {
     try {
       const stored = localStorage.getItem('psr_current_user');

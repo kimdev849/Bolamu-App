@@ -1,46 +1,61 @@
-import { Component, signal } from '@angular/core';
-import { mockAgents } from '../../../core/mock/db';
-import type { DeliveryAgent } from '../../../core/models/delivery-company';
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { Api } from '../../../core/services/api';
+import { Auth } from '../../../core/services/auth';
 
 @Component({
   selector: 'psr-delivery-agents',
+  imports: [],
   templateUrl: './delivery-agents.html',
   styleUrl: './delivery-agents.scss',
 })
-export class DeliveryAgents {
-  readonly agents = signal(mockAgents.filter(a => a.companyId === 'DC-001'));
+export class DeliveryAgents implements OnInit {
+  private readonly api = inject(Api);
+
+  readonly agents = signal<any[]>([]);
   readonly showAddForm = signal(false);
   readonly newFirstName = signal('');
   readonly newLastName = signal('');
   readonly newEmail = signal('');
   readonly newPhone = signal('');
-  readonly newVehicleType = signal<string>('motorcycle');
+  readonly newVehicleType = signal('motorcycle');
   readonly newVehiclePlate = signal('');
 
   readonly vehicleLabels: Record<string, string> = {
     motorcycle: 'Moto', car: 'Voiture', van: 'Camionnette', truck: 'Camion',
   };
 
-  toggleActive(agent: DeliveryAgent): void {
-    this.agents.set(this.agents().map(a => a.id === agent.id ? { ...a, isActive: !a.isActive } : a));
+  ngOnInit(): void {
+    this.api.getDeliveryAgents().subscribe({
+      next: (res) => { this.agents.set(res.data || []); },
+    });
   }
 
   addAgent(): void {
-    if (!this.newFirstName() || !this.newLastName()) return;
-    const agent: DeliveryAgent = {
-      id: 'AG-' + Date.now().toString(36).toUpperCase(),
-      firstName: this.newFirstName(),
-      lastName: this.newLastName(),
-      email: this.newEmail() || 'agent@bolamu.cg',
-      phone: this.newPhone() || '+242000000000',
+    const firstName = this.newFirstName();
+    const lastName = this.newLastName();
+    if (!firstName || !lastName) return;
+    const newAgent = {
+      id: `AGT-${Date.now()}`,
+      firstName, lastName,
+      email: this.newEmail(),
+      phone: this.newPhone(),
+      vehicleType: this.newVehicleType(),
+      vehiclePlate: this.newVehiclePlate(),
       isActive: true,
-      vehicleType: this.newVehicleType() as any,
-      vehiclePlate: this.newVehiclePlate() || 'XX-000-XX',
-      companyId: 'DC-001',
-      createdAt: new Date().toISOString(),
     };
-    this.agents.set([agent, ...this.agents()]);
+    this.agents.update(a => [newAgent, ...a]);
     this.showAddForm.set(false);
-    this.newFirstName.set(''); this.newLastName.set(''); this.newEmail.set(''); this.newPhone.set(''); this.newVehiclePlate.set('');
+    this.newFirstName.set('');
+    this.newLastName.set('');
+    this.newEmail.set('');
+    this.newPhone.set('');
+    this.newVehicleType.set('motorcycle');
+    this.newVehiclePlate.set('');
+  }
+
+  toggleActive(a: any): void {
+    this.agents.update(all =>
+      all.map(ag => ag.id === a.id ? { ...ag, isActive: !ag.isActive } : ag)
+    );
   }
 }

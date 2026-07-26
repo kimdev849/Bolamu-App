@@ -1,6 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { mockDeliveryCompanies, mockAgents } from '../../../core/mock/db';
-import type { DeliveryCompany } from '../../../core/models/delivery-company';
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { Api } from '../../../core/services/api';
 
 @Component({
   selector: 'psr-admin-delivery-companies',
@@ -8,73 +7,94 @@ import type { DeliveryCompany } from '../../../core/models/delivery-company';
   templateUrl: './admin-delivery-companies.html',
   styleUrl: './admin-delivery-companies.scss',
 })
-export class AdminDeliveryCompanies {
-  readonly companies = signal([...mockDeliveryCompanies]);
-  readonly agents = signal(mockAgents);
-  readonly searchQuery = signal('');
-  readonly expandedCompany = signal<string | null>(null);
-  readonly filteredCompanies = signal([...mockDeliveryCompanies]);
-  readonly showAddModal = signal(false);
+export class AdminDeliveryCompanies implements OnInit {
+  private readonly api = inject(Api);
 
-  // New company form fields
+  readonly companies = signal<any[]>([]);
+  readonly filteredCompanies = signal<any[]>([]);
+  readonly expandedCompany = signal<string | null>(null);
+  readonly showAddModal = signal(false);
+  readonly isLoading = signal(false);
+
   readonly newName = signal('');
   readonly newEmail = signal('');
   readonly newPhone = signal('');
   readonly newAddress = signal('');
   readonly newCity = signal('');
-  readonly newFleetSize = signal(5);
+  readonly newFleetSize = signal(0);
+
+  private allCompanies: any[] = [];
+  private searchQuery = '';
+
+  get totalActive() { return this.allCompanies.filter(c => c.isActive).length; }
+  get totalFleet() { return this.allCompanies.reduce((s, c) => s + (c.fleetSize || 0), 0); }
+
+  ngOnInit(): void {
+    this.loadCompanies();
+  }
+
+  private loadCompanies(): void {
+    this.isLoading.set(true);
+    this.api.getAdminDeliveryCompanies(1, 100).subscribe({
+      next: (res) => {
+        this.allCompanies = res.data || [];
+        this.companies.set(this.allCompanies);
+        this.applyFilter();
+      },
+      complete: () => this.isLoading.set(false),
+    });
+  }
 
   onSearch(event: Event): void {
-    const q = (event.target as HTMLInputElement).value.toLowerCase();
-    this.searchQuery.set(q);
-    this.filteredCompanies.set(
-      q ? this.companies().filter(c => c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q))
-         : [...this.companies()]
-    );
+    this.searchQuery = (event.target as HTMLInputElement).value;
+    this.applyFilter();
+  }
+
+  private applyFilter(): void {
+    const q = this.searchQuery.toLowerCase();
+    const result = q
+      ? this.allCompanies.filter(c => (c.name || '').toLowerCase().includes(q) || (c.city || '').toLowerCase().includes(q))
+      : [...this.allCompanies];
+    this.filteredCompanies.set(result);
   }
 
   toggleExpand(id: string): void {
     this.expandedCompany.set(this.expandedCompany() === id ? null : id);
   }
 
-  getCompanyAgents(companyId: string) {
-    return mockAgents.filter(a => a.companyId === companyId);
+  getCompanyAgents(companyId: string): any[] {
+    return [];
   }
 
-  toggleActive(c: DeliveryCompany): void {
-    const updated = this.companies().map(x => x.id === c.id ? { ...x, isActive: !x.isActive } : x);
-    this.companies.set(updated);
-    const updatedC = updated.find(x => x.id === c.id);
-    if (updatedC) {
-      this.expandedCompany.set(null);
-      setTimeout(() => this.expandedCompany.set(updatedC.id), 50);
-    }
-    this.onSearch({ target: { value: this.searchQuery() } } as any);
+  toggleActive(c: any): void {
+    this.allCompanies = this.allCompanies.map(co => co.id === c.id ? { ...co, isActive: !co.isActive } : co);
+    this.companies.set(this.allCompanies);
+    this.applyFilter();
   }
 
   addCompany(): void {
-    if (!this.newName() || !this.newCity()) return;
-    const c: DeliveryCompany = {
-      id: 'DC-' + String(this.companies().length + 1).padStart(3, '0'),
-      name: this.newName(),
-      email: this.newEmail() || 'contact@nouvelle.cg',
-      phone: this.newPhone() || '+242000000000',
-      address: this.newAddress() || 'Non renseignée',
-      city: this.newCity(),
-      region: 'Non spécifié',
+    const name = this.newName();
+    if (!name) return;
+    const newCo = {
+      id: `DC-${Date.now()}`,
+      name,
+      email: this.newEmail(),
+      phone: this.newPhone(),
+      address: this.newAddress(),
+      city: this.newCity() || 'Brazzaville',
+      fleetSize: this.newFleetSize() || 0,
       isActive: true,
-      fleetSize: this.newFleetSize(),
-      coverageZones: [this.newCity()],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      coverageZones: [this.newCity() || 'Brazzaville'],
     };
-    this.companies.set([c, ...this.companies()]);
+    this.allCompanies = [newCo, ...this.allCompanies];
+    this.companies.set(this.allCompanies);
+    this.applyFilter();
     this.showAddModal.set(false);
-    this.newName.set(''); this.newEmail.set(''); this.newPhone.set('');
-    this.newAddress.set(''); this.newCity.set(''); this.newFleetSize.set(5);
-    this.onSearch({ target: { value: '' } } as any);
+    this.newName.set('');
+    this.newEmail.set('');
+    this.newPhone.set('');
+    this.newAddress.set('');
+    this.newCity.set('');
+    this.newFleetSize.set(0);
   }
-
-  get totalActive() { return this.companies().filter(c => c.isActive).length; }
-  get totalFleet() { return this.companies().reduce((s, c) => s + c.fleetSize, 0); }
 }

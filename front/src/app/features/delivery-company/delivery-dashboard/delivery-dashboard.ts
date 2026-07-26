@@ -1,8 +1,6 @@
-import { Component, inject } from '@angular/core';
-
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { Api } from '../../../core/services/api';
 import { Auth } from '../../../core/services/auth';
-import { mockOrders, mockDeliveryCompanies, mockAgents } from '../../../core/mock/db';
-import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants';
 
 @Component({
   selector: 'psr-delivery-dashboard',
@@ -10,17 +8,30 @@ import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants
   templateUrl: './delivery-dashboard.html',
   styleUrl: './delivery-dashboard.scss',
 })
-export class DeliveryDashboard {
+export class DeliveryDashboard implements OnInit {
+  private readonly api = inject(Api);
   private readonly auth = inject(Auth);
-  readonly user = this.auth.currentUser;
-  readonly company = mockDeliveryCompanies[0];
-  readonly agents = mockAgents.filter(a => a.companyId === 'DC-001');
-  readonly missions = mockOrders.filter(o => o.deliveryStatus);
 
-  readonly STATUS_LABELS = STATUS_LABELS;
-  readonly STATUS_COLORS = STATUS_COLORS;
+  readonly company: any = { name: '—', city: '—', fleetSize: 0, coverageZones: [] };
 
-  get activeMissions() { return this.missions.filter(m => m.deliveryStatus !== 'delivered').length; }
-  get completedMissions() { return this.missions.filter(m => m.deliveryStatus === 'delivered').length; }
-  get activeAgents() { return this.agents.filter(a => a.isActive).length; }
+  missions: any[] = [];
+  agents: any[] = [];
+
+  get activeMissions() { return this.missions.filter((m: any) => m.deliveryStatus !== 'delivered').length; }
+  get completedMissions() { return this.missions.filter((m: any) => m.deliveryStatus === 'delivered').length; }
+  get activeAgents() { return this.agents.filter((a: any) => a.isActive).length; }
+
+  ngOnInit(): void {
+    this.api.getMyDeliveryCompany().subscribe({
+      next: (res) => {
+        if (res.data) Object.assign(this.company, res.data);
+      },
+    });
+    this.api.getOrders({ limit: 50 }).subscribe({
+      next: (res) => { this.missions = res.data || []; },
+    });
+    this.api.getDeliveryAgents().subscribe({
+      next: (res) => { this.agents = res.data || []; },
+    });
+  }
 }

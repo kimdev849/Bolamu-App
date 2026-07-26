@@ -83,6 +83,7 @@ export const URGENCY_COLORS: Record<string, string> = {
   emergency: 'bg-red-100 text-red-700',
 };
 
+/** Mapping statuts (minuscules) → labels */
 export const STATUS_LABELS: Record<string, string> = {
   searching: 'En recherche',
   found: 'Produit trouvé',
@@ -108,8 +109,33 @@ export const STATUS_LABELS: Record<string, string> = {
   active: 'Actif',
   pending_approval: 'En validation',
   suspended: 'Suspendu',
+  // Backend (MAJUSCULES)
+  SEARCHING: 'En recherche',
+  FOUND: 'Produit trouvé',
+  PENDING: 'En attente',
+  MATCHED: 'Correspondance trouvée',
+  CONFIRMED: 'Confirmé',
+  PAID: 'Payé',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminé',
+  CANCELLED: 'Annulé',
+  EXPIRED: 'Expiré',
+  CREATED: 'Créée',
+  PROCESSING: 'En traitement',
+  SHIPPED: 'Expédié',
+  DELIVERED: 'Livré',
+  REFUNDED: 'Remboursé',
+  ASSIGNED: 'Assigné',
+  PICKED_UP: 'Récupéré',
+  IN_TRANSIT: 'En transit',
+  FAILED: 'Échoué',
+  UNPAID: 'Impayé',
+  ACTIVE: 'Actif',
+  SUSPENDED: 'Suspendu',
+  PENDING_CONFIRMATION: 'En validation',
 };
 
+/** Mapping statuts (minuscules) → couleurs CSS */
 export const STATUS_COLORS: Record<string, string> = {
   searching: 'bg-purple-100 text-purple-700',
   found: 'bg-emerald-100 text-emerald-700',
@@ -128,6 +154,29 @@ export const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700',
   unpaid: 'bg-amber-100 text-amber-700',
   paid: 'bg-emerald-100 text-emerald-700',
+  // Backend (MAJUSCULES)
+  SEARCHING: 'bg-purple-100 text-purple-700',
+  FOUND: 'bg-emerald-100 text-emerald-700',
+  PENDING: 'bg-amber-100 text-amber-700',
+  MATCHED: 'bg-blue-100 text-blue-700',
+  CONFIRMED: 'bg-cyan-100 text-cyan-700',
+  PAID: 'bg-emerald-100 text-emerald-700',
+  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
+  COMPLETED: 'bg-emerald-100 text-emerald-700',
+  CANCELLED: 'bg-red-100 text-red-700',
+  EXPIRED: 'bg-slate-100 text-slate-500',
+  CREATED: 'bg-blue-100 text-blue-700',
+  PROCESSING: 'bg-violet-100 text-violet-700',
+  SHIPPED: 'bg-sky-100 text-sky-700',
+  DELIVERED: 'bg-emerald-100 text-emerald-700',
+  REFUNDED: 'bg-rose-100 text-rose-700',
+  ASSIGNED: 'bg-cyan-100 text-cyan-700',
+  PICKED_UP: 'bg-indigo-100 text-indigo-700',
+  IN_TRANSIT: 'bg-amber-100 text-amber-700',
+  FAILED: 'bg-red-100 text-red-700',
+  UNPAID: 'bg-amber-100 text-amber-700',
+  ACTIVE: 'bg-emerald-100 text-emerald-700',
+  SUSPENDED: 'bg-red-100 text-red-700',
 };
 
 /** Barème des frais de livraison par ville/zone (configuré par l'admin PSR) */

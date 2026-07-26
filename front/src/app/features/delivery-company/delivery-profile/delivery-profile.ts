@@ -1,18 +1,30 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { Api } from '../../../core/services/api';
 import { Auth } from '../../../core/services/auth';
-import { mockDeliveryCompanies } from '../../../core/mock/db';
 
 @Component({
   selector: 'psr-delivery-profile',
+  imports: [],
   templateUrl: './delivery-profile.html',
   styleUrl: './delivery-profile.scss',
 })
-export class DeliveryProfile {
+export class DeliveryProfile implements OnInit {
+  private readonly api = inject(Api);
   private readonly auth = inject(Auth);
-  readonly user = this.auth.currentUser;
-  readonly company = mockDeliveryCompanies[0];
+
+  readonly user = signal<any>(null);
+  readonly company: any = { name: '—', city: '—', fleetSize: 0 };
+
+  ngOnInit(): void {
+    this.user.set(this.auth.user());
+    this.api.getMyDeliveryCompany().subscribe({
+      next: (res) => {
+        if (res.data) Object.assign(this.company, res.data);
+      },
+    });
+  }
 
   saveProfile(): void {
-    alert('✅ Profil mis à jour avec succès !');
+    alert('Profil mis à jour (simulation).');
   }
 }

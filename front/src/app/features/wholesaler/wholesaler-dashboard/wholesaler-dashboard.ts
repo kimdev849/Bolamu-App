@@ -1,7 +1,7 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Auth } from '../../../core/services/auth';
-import { mockRequests, mockOrders } from '../../../core/mock/db';
+import { Api } from '../../../core/services/api';
 import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants';
 
 @Component({
@@ -10,17 +10,39 @@ import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants
   templateUrl: './wholesaler-dashboard.html',
   styleUrl: './wholesaler-dashboard.scss',
 })
-export class WholesalerDashboard {
+export class WholesalerDashboard implements OnInit {
+  private readonly api = inject(Api);
   private readonly auth = inject(Auth);
-  readonly user = this.auth.currentUser;
 
-  readonly matchedRequests = signal(mockRequests.filter(r => r.responses?.some(rs => rs.wholesalerId === 'WH-001')));
-  readonly myOrders = signal(mockOrders.filter(o => o.wholesalerId === 'WH-001'));
-  readonly pendingRequests = signal(mockRequests.filter(r => r.status === 'pending'));
-  readonly totalRequests = mockRequests.filter(r => r.responses?.some(rs => rs.wholesalerId === 'WH-001')).length;
-  readonly totalOrders = mockOrders.filter(o => o.wholesalerId === 'WH-001').length;
-  readonly totalRevenue = mockOrders.filter(o => o.wholesalerId === 'WH-001').reduce((s, o) => s + o.totalPrice, 0);
+  readonly user = signal<any>(null);
+  readonly pendingRequests = signal<any[]>([]);
+  readonly matchedRequests = signal<any[]>([]);
+  readonly myOrders = signal<any[]>([]);
 
-  readonly STATUS_LABELS = STATUS_LABELS;
-  readonly STATUS_COLORS = STATUS_COLORS;
+  totalRequests = 0;
+  totalOrders = 0;
+  totalRevenue = 0;
+
+  protected readonly STATUS_LABELS = STATUS_LABELS;
+  protected readonly STATUS_COLORS = STATUS_COLORS;
+
+  ngOnInit(): void {
+    this.user.set(this.auth.user());
+    this.api.getMyWholesalerRequests().subscribe({
+      next: (res) => {
+        const data = res.data || [];
+        this.matchedRequests.set(data);
+        this.totalRequests = data.length;
+        this.pendingRequests.set(data.filter((r: any) => r.status === 'SEARCHING' || r.status === 'searching'));
+      },
+    });
+    this.api.getMyOrders().subscribe({
+      next: (res) => {
+        const data = res.data || [];
+        this.myOrders.set(data);
+        this.totalOrders = data.length;
+        this.totalRevenue = data.reduce((s: number, o: any) => s + (o.totalAmount || 0), 0);
+      },
+    });
+  }
 }

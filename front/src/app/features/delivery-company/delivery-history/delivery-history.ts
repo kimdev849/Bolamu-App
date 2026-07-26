@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { mockOrders } from '../../../core/mock/db';
+import { Api } from '../../../core/services/api';
 import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants';
 
 @Component({
@@ -9,10 +9,25 @@ import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants
   templateUrl: './delivery-history.html',
   styleUrl: './delivery-history.scss',
 })
-export class DeliveryHistory {
-  readonly history = signal(mockOrders.filter(o => o.deliveryStatus === 'delivered'));
-  readonly STATUS_LABELS = STATUS_LABELS;
-  readonly STATUS_COLORS = STATUS_COLORS;
+export class DeliveryHistory implements OnInit {
+  private readonly api = inject(Api);
 
-  get totalRevenue() { return this.history().reduce((s, o) => s + o.totalPrice, 0); }
+  readonly history = signal<any[]>([]);
+  totalRevenue = 0;
+
+  protected readonly STATUS_LABELS = STATUS_LABELS;
+  protected readonly STATUS_COLORS = STATUS_COLORS;
+  protected readonly Math = Math;
+
+  ngOnInit(): void {
+    this.api.getOrders({ limit: 100 }).subscribe({
+      next: (res) => {
+        const delivered = (res.data || []).filter((o: any) =>
+          o.deliveryStatus === 'delivered' || o.orderStatus === 'DELIVERED'
+        );
+        this.history.set(delivered);
+        this.totalRevenue = delivered.reduce((s: number, o: any) => s + (o.totalAmount || 0), 0);
+      },
+    });
+  }
 }

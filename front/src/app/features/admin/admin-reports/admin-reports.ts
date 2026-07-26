@@ -1,53 +1,54 @@
-import { Component } from '@angular/core';
-import { mockOrders, mockPharmacies, mockWholesalers, mockRequests } from '../../../core/mock/db';
+import { Component, inject, OnInit } from '@angular/core';
+import { Api } from '../../../core/services/api';
+import { STATUS_LABELS, STATUS_COLORS } from '../../../core/config/app.constants';
 
 @Component({
   selector: 'psr-admin-reports',
+  imports: [],
   templateUrl: './admin-reports.html',
   styleUrl: './admin-reports.scss',
 })
-export class AdminReports {
-  readonly totalRevenue = mockOrders.reduce((s, o) => s + o.totalPrice, 0);
+export class AdminReports implements OnInit {
+  private readonly api = inject(Api);
+  totalRevenue = 0;
 
-  readonly kpis = [
-    { label: 'Revenu total', value: this.totalRevenue.toLocaleString() + ' FCFA', color: 'text-slate-900', change: '+15%', up: true },
-    { label: 'Commandes', value: mockOrders.length.toString(), color: 'text-indigo-600', change: '+8%', up: true },
-    { label: 'Demandes', value: mockRequests.length.toString(), color: 'text-amber-600', change: '+23%', up: true },
-    { label: 'Taux de complétion', value: '78%', color: 'text-emerald-600', change: '+5%', up: true },
+  kpis: any[] = [
+    { label: 'Revenu total', value: '0 FCFA', color: 'text-slate-900', change: '-', up: true },
+    { label: 'Commandes', value: '0', color: 'text-indigo-600', change: '-', up: true },
+    { label: 'Demandes', value: '0', color: 'text-amber-600', change: '-', up: true },
+    { label: 'Taux de complétion', value: '—', color: 'text-emerald-600', change: '-', up: true },
   ];
 
   readonly maxRevenue = 3500000;
   readonly monthlyData = [
-    { month: 'Jan', value: 1800000, highlight: false },
-    { month: 'Fév', value: 2100000, highlight: false },
-    { month: 'Mar', value: 2500000, highlight: false },
-    { month: 'Avr', value: 2200000, highlight: false },
-    { month: 'Mai', value: 2800000, highlight: false },
-    { month: 'Juin', value: 3200000, highlight: false },
-    { month: 'Juil', value: 3000000, highlight: false },
-    { month: 'Aoû', value: 2700000, highlight: false },
-    { month: 'Sep', value: 3100000, highlight: false },
-    { month: 'Oct', value: 3400000, highlight: false },
-    { month: 'Nov', value: 2900000, highlight: false },
-    { month: 'Déc', value: this.totalRevenue, highlight: true },
+    { month: 'Jan', value: 0, highlight: false }, { month: 'Fév', value: 0, highlight: false },
+    { month: 'Mar', value: 0, highlight: false }, { month: 'Avr', value: 0, highlight: false },
+    { month: 'Mai', value: 0, highlight: false }, { month: 'Juin', value: 0, highlight: false },
+    { month: 'Juil', value: 0, highlight: false }, { month: 'Aoû', value: 0, highlight: false },
+    { month: 'Sep', value: 0, highlight: false }, { month: 'Oct', value: 0, highlight: false },
+    { month: 'Nov', value: 0, highlight: false }, { month: 'Déc', value: 0, highlight: true },
+  ];
+  readonly activityDistribution: any[] = [
+    { label: 'Commandes complétées', value: '0', percentage: 0, color: 'bg-emerald-500' },
+    { label: 'En cours de traitement', value: '0', percentage: 0, color: 'bg-indigo-500' },
+    { label: 'Demandes en attente', value: '0', percentage: 0, color: 'bg-amber-500' },
+    { label: 'Annulées / Expirées', value: '0', percentage: 0, color: 'bg-red-500' },
+  ];
+  readonly recentActivity: any[] = [
+    { date: '—', type: '—', badgeColor: 'bg-slate-100 text-slate-500', description: 'Données en attente de synchronisation' },
   ];
 
-  readonly activityDistribution = [
-    { label: 'Commandes complétées', value: mockOrders.filter(o => o.status === 'delivered').length.toString(), percentage: 40, color: 'bg-emerald-500' },
-    { label: 'En cours de traitement', value: mockOrders.filter(o => o.status === 'processing' || o.status === 'confirmed').length.toString(), percentage: 25, color: 'bg-indigo-500' },
-    { label: 'Demandes en attente', value: mockRequests.filter(r => r.status === 'pending').length.toString(), percentage: 20, color: 'bg-amber-500' },
-    { label: 'Annulées / Expirées', value: (mockOrders.filter(o => o.status === 'cancelled').length + mockRequests.filter(r => r.status === 'cancelled').length).toString(), percentage: 15, color: 'bg-red-500' },
-  ];
-
-  readonly recentActivity = [
-    { date: '25/07/2026', type: 'Commande', badgeColor: 'bg-indigo-100 text-indigo-700', description: 'Nouvelle commande ORD-004 créée par Pharmacie du Jour' },
-    { date: '24/07/2026', type: 'Pharmacie', badgeColor: 'bg-emerald-100 text-emerald-700', description: 'Pharmacie Saint Michel a renouvelé son abonnement' },
-    { date: '23/07/2026', type: 'Paiement', badgeColor: 'bg-amber-100 text-amber-700', description: 'Paiement de 66 000 FCFA reçu pour ORD-001' },
-    { date: '22/07/2026', type: 'Utilisateur', badgeColor: 'bg-cyan-100 text-cyan-700', description: 'Nouvelle demande d\'accès de Pharmacie Saint Joseph' },
-    { date: '21/07/2026', type: 'Livraison', badgeColor: 'bg-sky-100 text-sky-700', description: 'Livraison ORD-002 assignée à Express Médical' },
-  ];
+  ngOnInit(): void {
+    this.api.getAdminStats().subscribe({
+      next: (res) => {
+        const s = res.data;
+        this.kpis[1] = { ...this.kpis[1], value: s.totalOrders.toString() };
+        this.kpis[2] = { ...this.kpis[2], value: s.totalRequests.toString() };
+      },
+    });
+  }
 
   exportReport(): void {
-    alert('Export PDF simulé — fonctionnalité à implémenter avec un service d\'export.');
+    alert('Export PDF — fonctionnalité à implémenter.');
   }
 }

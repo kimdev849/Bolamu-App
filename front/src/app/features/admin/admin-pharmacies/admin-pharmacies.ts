@@ -1,6 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { mockPharmacies } from '../../../core/mock/db';
-import type { Pharmacy } from '../../../core/models/pharmacy';
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { Api } from '../../../core/services/api';
 
 @Component({
   selector: 'psr-admin-pharmacies',
@@ -8,83 +7,21 @@ import type { Pharmacy } from '../../../core/models/pharmacy';
   templateUrl: './admin-pharmacies.html',
   styleUrl: './admin-pharmacies.scss',
 })
-export class AdminPharmacies {
-  readonly pharmacies = signal([...mockPharmacies]);
-  readonly searchQuery = signal('');
+export class AdminPharmacies implements OnInit {
+  private readonly api = inject(Api);
+
   readonly selectedFilter = signal<string>('all');
-  readonly selectedPharmacy = signal<Pharmacy | null>(null);
-  readonly showDetail = signal(false);
+  readonly filteredPharmacies = signal<any[]>([]);
   readonly showAddModal = signal(false);
+  readonly showDetail = signal(false);
+  readonly selectedPharmacy = signal<any>(null);
   readonly newPharmacyName = signal('');
   readonly newPharmacyCity = signal('');
   readonly newPharmacyEmail = signal('');
+  readonly isLoading = signal(false);
 
-  readonly filteredPharmacies = signal([...mockPharmacies]);
-
-  updateFilter(filter: string): void {
-    this.selectedFilter.set(filter);
-    this.applyFilters();
-  }
-
-  onSearch(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchQuery.set(value);
-    this.applyFilters();
-  }
-
-  private applyFilters(): void {
-    let result = [...this.pharmacies()];
-    const filter = this.selectedFilter();
-    const query = this.searchQuery().toLowerCase();
-
-    if (filter === 'active') result = result.filter(p => p.isActive);
-    if (filter === 'inactive') result = result.filter(p => !p.isActive);
-    if (filter === 'verified') result = result.filter(p => p.isVerified);
-    if (filter === 'unverified') result = result.filter(p => !p.isVerified);
-    if (query) result = result.filter(p =>
-      p.name.toLowerCase().includes(query) || p.city.toLowerCase().includes(query)
-    );
-    this.filteredPharmacies.set(result);
-  }
-
-  openDetail(pharmacy: Pharmacy): void { this.selectedPharmacy.set(pharmacy); this.showDetail.set(true); }
-  closeDetail(): void { this.showDetail.set(false); this.selectedPharmacy.set(null); }
-
-  toggleActive(pharmacy: Pharmacy): void {
-    const updated = this.pharmacies().map(p =>
-      p.id === pharmacy.id ? { ...p, isActive: !p.isActive } : p
-    );
-    this.pharmacies.set(updated);
-    const updatedPh = updated.find(p => p.id === pharmacy.id);
-    if (updatedPh) this.selectedPharmacy.set(updatedPh);
-    this.applyFilters();
-  }
-
-  addPharmacy(): void {
-    if (!this.newPharmacyName() || !this.newPharmacyCity()) return;
-    const newPharm: Pharmacy = {
-      id: 'PH-' + String(this.pharmacies().length + 1).padStart(3, '0'),
-      name: this.newPharmacyName(),
-      email: this.newPharmacyEmail() || 'contact@nouvelle.cg',
-      phone: '+242000000000',
-      address: 'Adresse non renseignée',
-      city: this.newPharmacyCity(),
-      region: 'Non spécifié',
-      licenseNumber: 'LIC-' + Date.now().toString(36).toUpperCase(),
-      pharmacistInCharge: 'Non assigné',
-      isVerified: false,
-      isActive: true,
-      subscriptionStatus: 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.pharmacies.set([newPharm, ...this.pharmacies()]);
-    this.showAddModal.set(false);
-    this.newPharmacyName.set('');
-    this.newPharmacyCity.set('');
-    this.newPharmacyEmail.set('');
-    this.applyFilters();
-  }
+  private pharmacies: any[] = [];
+  private searchQuery = '';
 
   readonly statusLabels: Record<string, string> = {
     active: 'Actif', expired: 'Expiré', pending: 'En attente', cancelled: 'Annulé',
@@ -94,8 +31,89 @@ export class AdminPharmacies {
     pending: 'bg-amber-100 text-amber-700', cancelled: 'bg-slate-100 text-slate-500',
   };
 
-  get totalActive() { return this.pharmacies().filter(p => p.isActive).length; }
-  get totalVerified() { return this.pharmacies().filter(p => p.isVerified).length; }
-  get totalPending() { return this.pharmacies().filter(p => p.subscriptionStatus === 'pending').length; }
-  get totalPharmacies() { return this.pharmacies().length; }
+  get totalActive() { return this.pharmacies.filter(p => p.isActive).length; }
+  get totalPharmacies() { return this.pharmacies.length; }
+  get totalVerified() { return this.pharmacies.filter(p => p.isVerified).length; }
+  get totalPending() { return this.pharmacies.filter(p => !p.isVerified).length; }
+
+  ngOnInit(): void {
+    this.loadPharmacies();
+  }
+
+  private loadPharmacies(): void {
+    this.isLoading.set(true);
+    this.api.getAdminPharmacies(1, 100).subscribe({
+      next: (res) => {
+        this.pharmacies = res.data || [];
+        this.applyFilters();
+      },
+      complete: () => this.isLoading.set(false),
+    });
+  }
+
+  updateFilter(filter: string): void {
+    this.selectedFilter.set(filter);
+    this.applyFilters();
+  }
+
+  onSearch(event: Event): void {
+    this.searchQuery = (event.target as HTMLInputElement).value;
+    this.applyFilters();
+  }
+
+  private applyFilters(): void {
+    let result = [...this.pharmacies];
+    const filter = this.selectedFilter();
+    const query = this.searchQuery.toLowerCase();
+
+    if (filter === 'active') result = result.filter(p => p.isActive);
+    if (filter === 'inactive') result = result.filter(p => !p.isActive);
+    if (filter === 'verified') result = result.filter(p => p.isVerified);
+    if (filter === 'unverified') result = result.filter(p => !p.isVerified);
+    if (query) result = result.filter(p =>
+      (p.name || '').toLowerCase().includes(query) || (p.city || '').toLowerCase().includes(query)
+    );
+    this.filteredPharmacies.set(result);
+  }
+
+  openDetail(pharmacy: any): void {
+    this.selectedPharmacy.set(pharmacy);
+    this.showDetail.set(true);
+  }
+  closeDetail(): void {
+    this.showDetail.set(false);
+    this.selectedPharmacy.set(null);
+  }
+
+  addPharmacy(): void {
+    const name = this.newPharmacyName();
+    if (!name) return;
+    const newPharm = {
+      id: `PH-${Date.now()}`,
+      name,
+      city: this.newPharmacyCity() || 'Brazzaville',
+      email: this.newPharmacyEmail(),
+      isActive: true,
+      isVerified: false,
+      subscriptionStatus: 'pending',
+      pharmacistInCharge: '',
+      licenseNumber: '',
+      phone: '',
+      address: '',
+      region: '',
+    };
+    this.pharmacies = [newPharm, ...this.pharmacies];
+    this.applyFilters();
+    this.showAddModal.set(false);
+    this.newPharmacyName.set('');
+    this.newPharmacyCity.set('');
+    this.newPharmacyEmail.set('');
+  }
+
+  toggleActive(ph: any): void {
+    this.pharmacies = this.pharmacies.map(p =>
+      p.id === ph.id ? { ...p, isActive: !p.isActive } : p
+    );
+    this.applyFilters();
+  }
 }
