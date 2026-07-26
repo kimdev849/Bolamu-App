@@ -10,12 +10,7 @@ import {
 } from '@angular/common/http';
 
 import { routes } from './app.routes';
-import { environment } from '../environments/environment';
-import { authInterceptor, errorInterceptor, mockApiInterceptor } from './core/interceptors';
-
-const interceptors = environment.mockApi
-  ? [mockApiInterceptor, authInterceptor, errorInterceptor]
-  : [authInterceptor, errorInterceptor];
+import { authInterceptor, errorInterceptor } from './core/interceptors';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,6 +21,6 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
     ),
-    provideHttpClient(withInterceptors(interceptors)),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
   ],
 };

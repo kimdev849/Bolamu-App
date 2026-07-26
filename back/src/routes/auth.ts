@@ -105,6 +105,69 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
   });
 });
 
+/** POST /api/auth/forgot-password */
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ success: false, message: 'Email requis' });
+    return;
+  }
+
+  // On ne révèle pas si l'email existe ou non (sécurité)
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (user) {
+    const crypto = await import('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
+
+    await prisma.passwordResetToken.create({
+      data: { email, token, expiresAt },
+    });
+
+    // En MVP, on loggue le token (en production, envoyer par email)
+    console.log(`\n  🔑  Reset token pour ${email}: ${token}`);
+    console.log(`  🔗  http://localhost:4200/auth/reset-password?token=${token}&email=${encodeURIComponent(email)}\n`);
+  }
+
+  // Toujours retourner le même message (sécurité)
+  res.json({
+    success: true,
+    message: 'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation sous peu.',
+  });
+});
+
+/** POST /api/auth/reset-password */
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const { email, token, newPassword } = req.body;
+  if (!email || !token || !newPassword) {
+    res.status(400).json({ success: false, message: 'Email, token et nouveau mot de passe requis' });
+    return;
+  }
+  if (newPassword.length < 6) {
+    res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' });
+    return;
+  }
+
+  const resetToken = await prisma.passwordResetToken.findFirst({
+    where: { email, token, usedAt: null, expiresAt: { gt: new Date() } },
+  });
+
+  if (!resetToken) {
+    res.status(400).json({ success: false, message: 'Lien invalide ou expiré' });
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { email }, data: { password: hashedPassword } }),
+    prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
+  ]);
+
+  res.json({ success: true, message: 'Mot de passe réinitialisé avec succès. Connectez-vous avec votre nouveau mot de passe.' });
+});
+
 /** POST /api/auth/change-password */
 router.post('/change-password', requireAuth, async (req: Request, res: Response) => {
   const { currentPassword, newPassword } = req.body;

@@ -1,6 +1,7 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DateAgoPipe } from '../../../shared/pipes/date-ago-pipe';
-import type { OnboardingRequest, OnboardingStatus } from '../../../core/models/onboarding';
+import { Api } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
 
 @Component({
   selector: 'psr-admin-onboarding',
@@ -8,46 +9,77 @@ import type { OnboardingRequest, OnboardingStatus } from '../../../core/models/o
   templateUrl: './admin-onboarding.html',
   styleUrl: './admin-onboarding.scss',
 })
-export class AdminOnboarding {
-  readonly requests = signal<OnboardingRequest[]>([]);
+export class AdminOnboarding implements OnInit {
+  private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
+
+  readonly requests = signal<any[]>([]);
   readonly selectedTab = signal<string>('pending');
+  readonly isLoading = signal(false);
 
   readonly ENTITY_LABELS: Record<string, string> = {
     pharmacy: 'Pharmacie', wholesaler: 'Grossiste', delivery_company: 'Transport & Livraison',
   };
   readonly STATUS_LABELS: Record<string, string> = {
+    PENDING: 'En attente', CONTACTED: 'Contacté', APPROVED: 'Approuvé', REJECTED: 'Rejeté',
     pending: 'En attente', approved: 'Approuvé', rejected: 'Rejeté',
   };
   readonly STATUS_COLORS: Record<string, string> = {
+    PENDING: 'bg-amber-100 text-amber-700', CONTACTED: 'bg-blue-100 text-blue-700',
+    APPROVED: 'bg-emerald-100 text-emerald-700', REJECTED: 'bg-red-100 text-red-700',
     pending: 'bg-amber-100 text-amber-700', approved: 'bg-emerald-100 text-emerald-700', rejected: 'bg-red-100 text-red-700',
   };
   readonly tabs = [
-    { key: 'pending', label: 'En attente' }, { key: 'approved', label: 'Approuvées' },
-    { key: 'rejected', label: 'Rejetées' }, { key: 'all', label: 'Toutes' },
+    { key: 'PENDING', label: 'En attente' }, { key: 'APPROVED', label: 'Approuvées' },
+    { key: 'REJECTED', label: 'Rejetées' }, { key: 'all', label: 'Toutes' },
   ];
 
-  selectTab(key: string): void { this.selectedTab.set(key); }
+  ngOnInit(): void {
+    this.loadRequests();
+  }
 
-  get filteredRequests(): OnboardingRequest[] {
+  private loadRequests(): void {
+    this.isLoading.set(true);
+    this.api.getOnboardingRequests(this.selectedTab()).subscribe({
+      next: (res) => this.requests.set(res.data || []),
+      complete: () => this.isLoading.set(false),
+    });
+  }
+
+  selectTab(key: string): void {
+    this.selectedTab.set(key);
+    this.loadRequests();
+  }
+
+  get filteredRequests(): any[] {
     const all = this.requests();
     const tab = this.selectedTab();
     if (tab === 'all') return all;
     return all.filter((r: any) => r.status === tab);
   }
 
-  readonly pendingRequests = computed(() => this.requests().filter((r: any) => r.status === 'pending'));
-  readonly approvedRequests = computed(() => this.requests().filter((r: any) => r.status === 'approved'));
-  readonly rejectedRequests = computed(() => this.requests().filter((r: any) => r.status === 'rejected'));
+  readonly pendingRequests = computed(() => this.requests().filter((r: any) => r.status === 'PENDING' || r.status === 'pending'));
+  readonly approvedRequests = computed(() => this.requests().filter((r: any) => r.status === 'APPROVED' || r.status === 'approved'));
+  readonly rejectedRequests = computed(() => this.requests().filter((r: any) => r.status === 'REJECTED' || r.status === 'rejected'));
 
   approve(requestId: string): void {
-    this.requests.update(requests =>
-      requests.map(r => r.id === requestId ? { ...r, status: 'approved' as OnboardingStatus, processedAt: new Date().toISOString() } : r)
-    );
+    this.api.approveOnboardingRequest(requestId).subscribe({
+      next: (res) => {
+        this.toast.success('Demande approuvée',
+          `Compte créé — Identifiants envoyés à l'email de la demande (mot de passe temporaire: ${res.data.tempPassword})`);
+        this.loadRequests();
+      },
+      error: (err) => this.toast.error('Erreur', err.error?.message || "Impossible d'approuver la demande"),
+    });
   }
 
   reject(requestId: string): void {
-    this.requests.update(requests =>
-      requests.map(r => r.id === requestId ? { ...r, status: 'rejected' as OnboardingStatus, processedAt: new Date().toISOString() } : r)
-    );
+    this.api.rejectOnboardingRequest(requestId, 'Demande rejetée').subscribe({
+      next: () => {
+        this.toast.success('Demande rejetée', 'La demande a été marquée comme rejetée');
+        this.loadRequests();
+      },
+      error: (err) => this.toast.error('Erreur', err.error?.message || 'Impossible de rejeter la demande'),
+    });
   }
 }

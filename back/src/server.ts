@@ -14,7 +14,13 @@ const app = express();
 // Middleware
 // ──────────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:60453', 'http://127.0.0.1:4200'],
+  origin: [
+    'http://localhost:4200',
+    'http://localhost:60453',
+    'http://127.0.0.1:4200',
+    'https://bolamu-api.onrender.com',
+    'https://bolamu-app.onrender.com',
+  ],
   credentials: true,
 }));
 app.use(express.json());

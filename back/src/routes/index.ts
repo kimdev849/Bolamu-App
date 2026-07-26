@@ -6,6 +6,7 @@ import wholesalerRoutes from './wholesalers';
 import deliveryCompanyRoutes from './delivery-companies';
 import requestRoutes from './requests';
 import orderRoutes from './orders';
+import onboardingRoutes from './onboarding';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/wholesalers', wholesalerRoutes);
 router.use('/delivery-companies', deliveryCompanyRoutes);
 router.use('/requests', requestRoutes);
 router.use('/orders', orderRoutes);
+router.use('/onboarding', onboardingRoutes);
 
 export default router;

@@ -211,6 +211,49 @@ export class Api {
   updateOrderStatus(id: string, data: { orderStatus?: string; deliveryStatus?: string }): Observable<ApiResponse<any>> {
     return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/orders/${id}/status`, data);
   }
+
+  // ───── Auth extras ─────
+
+  forgotPassword(email: string): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.baseUrl}/auth/forgot-password`, { email });
+  }
+
+  resetPassword(email: string, token: string, newPassword: string): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.baseUrl}/auth/reset-password`, { email, token, newPassword });
+  }
+
+  // ───── Onboarding (public) ─────
+
+  submitOnboardingRequest(data: { entityType: string; entityName: string; email: string; phone: string; city: string; licenseNumber?: string; notes?: string }): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/onboarding`, data);
+  }
+
+  getOnboardingRequests(status?: string): Observable<ApiResponse<any[]>> {
+    const params = status && status !== 'all' ? new HttpParams().set('status', status) : undefined;
+    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/onboarding`, { params });
+  }
+
+  approveOnboardingRequest(id: string): Observable<ApiResponse<any>> {
+    return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/onboarding/${id}/approve`, {});
+  }
+
+  rejectOnboardingRequest(id: string, reason?: string): Observable<ApiResponse<any>> {
+    return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/onboarding/${id}/reject`, { reason });
+  }
+
+  // ───── Admin entity creation ─────
+
+  createAdminPharmacy(data: any): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/admin/pharmacies`, data);
+  }
+
+  createAdminWholesaler(data: any): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/admin/wholesalers`, data);
+  }
+
+  createAdminDeliveryCompany(data: any): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/admin/delivery-companies`, data);
+  }
 }
 
 // ───── Types de réponse API ─────
