@@ -3,16 +3,20 @@
   "version": "1.0.0",
   "description": "PSR PharmaFlow - Backend API (Prisma + Express + Supabase Postgres)",
   "main": "dist/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "npx prisma generate && tsc",
     "start": "node dist/server.js",
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
     "db:seed": "tsx src/seed.ts",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
-    "prisma:reset": "npx prisma migrate reset --force"
+    "prisma:reset": "npx prisma migrate reset --force",
+    "render:seed": "npx prisma db push --accept-data-loss && npx tsx src/seed.ts"
   },
   "prisma": {
     "seed": "tsx src/seed.ts"
