@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "postinstall": "npx prisma generate && npx tsc",
+
     "build": "npx prisma generate && tsc",
     "start": "npx prisma generate && npx tsx src/server.ts",
     "db:migrate": "npx prisma migrate dev",
