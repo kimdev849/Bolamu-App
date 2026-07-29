@@ -21,11 +21,11 @@
           @for (o of history(); track o.id) {
             <tr class="hover:bg-slate-50/50">
               <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ o.id }}</td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ o.pharmacyName }}</td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ o.productName }}</td>
-              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ o.totalPrice | number }} FCFA</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ o.pharmacy?.name || 'Pharmacie' }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ o.request?.productName || 'Produit' }}</td>
+              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ o.totalAmount | number }} FCFA</td>
               <td class="px-5 py-4">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.status]">{{ STATUS_LABELS[o.status] }}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.orderStatus]">{{ STATUS_LABELS[o.orderStatus] }}</span>
               </td>
               <td class="px-5 py-4 text-xs text-slate-500">{{ o.createdAt | date:'dd/MM/yyyy' }}</td>
             </tr>

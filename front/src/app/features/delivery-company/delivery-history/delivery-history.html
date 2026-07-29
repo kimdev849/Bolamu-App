@@ -20,9 +20,9 @@
           @for (h of history(); track h.id) {
             <tr class="hover:bg-slate-50/50">
               <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ h.id }}</td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ h.pharmacyName }}</td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ h.productName }}</td>
-              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ h.totalPrice | number }} FCFA</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ h.pharmacy?.name || 'Pharmacie' }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ h.request?.productName || 'Produit' }}</td>
+              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ h.totalAmount | number }} FCFA</td>
               <td class="px-5 py-4 text-xs text-slate-500">{{ h.updatedAt | date:'dd/MM/yyyy' }}</td>
             </tr>
           } @empty {

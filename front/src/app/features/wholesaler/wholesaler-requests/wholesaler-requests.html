@@ -22,7 +22,7 @@
     @for (r of filteredRequests(); track r.id) {
 
       <!-- === CARTE SEARCHING (active) === -->
-      @if (r.status === 'searching') {
+      @if (r.status === 'SEARCHING') {
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden transition-all"
           [class.shadow-md]="expandedId() === r.id"
           [class.border-indigo-300]="expandedId() === r.id"
@@ -32,10 +32,9 @@
             <div class="flex items-start gap-3">
               <!-- Icône urgence -->
               <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                [class.bg-red-50]="r.urgency === 'emergency'"
-                [class.bg-orange-50]="r.urgency === 'high'"
-                [class.bg-slate-50]="r.urgency !== 'emergency' && r.urgency !== 'high'">
-                @if (r.urgency === 'emergency' || r.urgency === 'high') {
+                [class.bg-red-50]="r.isUrgent"
+                [class.bg-slate-50]="!r.isUrgent">
+                @if (r.isUrgent) {
                   <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                 } @else {
                   <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
@@ -45,9 +44,9 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <p class="text-sm font-bold text-slate-900 truncate">{{ r.productName }}{{ r.dosage ? ' — ' + r.dosage : '' }}</p>
-                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" [class]="URGENCY_COLORS[r.urgency]">{{ URGENCY_LABELS[r.urgency] }}</span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" [class]="r.isUrgent ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">{{ r.isUrgent ? 'Urgent' : 'Normal' }}</span>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">{{ r.pharmacyName }} · {{ r.quantity }} {{ r.unit }}(s)</p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ r.pharmacy?.name || 'Pharmacie' }} · {{ r.quantity }} unité(s)</p>
               </div>
               <!-- Timer + badges -->
               <div class="flex items-center gap-2 flex-shrink-0">
@@ -120,7 +119,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-slate-500 truncate">{{ r.productName }}{{ r.dosage ? ' — ' + r.dosage : '' }}</p>
-              <p class="text-xs text-slate-400">{{ r.pharmacyName }} · {{ r.quantity }} {{ r.unit }}(s)</p>
+              <p class="text-xs text-slate-400">{{ r.pharmacy?.name || 'Pharmacie' }} · {{ r.quantity }} unité(s)</p>
             </div>
             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-500 whitespace-nowrap">Attribuée</span>
           </div>
@@ -153,7 +152,7 @@
                 }
                 <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" [class]="STATUS_COLORS[r.status]">{{ STATUS_LABELS[r.status] }}</span>
               </div>
-              <p class="text-xs text-slate-400">{{ r.pharmacyName }} · {{ r.quantity }} {{ r.unit }}(s)</p>
+              <p class="text-xs text-slate-400">{{ r.pharmacy?.name || 'Pharmacie' }} · {{ r.quantity }} unité(s)</p>
             </div>
           </div>
           <!-- Confirmation commande pour les acceptées (compacte) -- breakdown complet -->
@@ -162,11 +161,11 @@
               <div class="flex items-center gap-2 text-xs text-blue-800 flex-wrap">
                 <span class="font-bold">{{ order.id }}</span>
                 <span class="text-blue-300">|</span>
-                <span>💊 {{ (order.unitPrice * order.quantity).toLocaleString() }}</span>
+                <span>💊 {{ (order.productAmount||0).toLocaleString() }}</span>
                 <span class="text-blue-300">+</span>
-                <span>🚚 {{ order.deliveryPrice.toLocaleString() }}</span>
+                <span>🚚 {{ (order.deliveryAmount||0).toLocaleString() }}</span>
                 <span class="text-blue-300">=</span>
-                <span class="font-bold">{{ order.totalPrice.toLocaleString() }} FCFA</span>
+                <span class="font-bold">{{ (order.totalAmount||0).toLocaleString() }} FCFA</span>
               </div>
               <span class="text-[10px] text-blue-500">⏳ Paiement</span>
             </div>

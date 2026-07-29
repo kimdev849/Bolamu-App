@@ -32,13 +32,13 @@
           @for (o of filteredOrders(); track o.id) {
             <tr class="hover:bg-slate-50/50">
               <td class="px-5 py-4">
-                <p class="text-sm font-semibold text-slate-900">{{ o.id }}</p>
-                <p class="text-xs text-slate-400">{{ o.productName }} × {{ o.quantity }}</p>
+                <p class="text-sm font-semibold text-slate-900">{{ o.reference || o.id }}</p>
+                <p class="text-xs text-slate-400">{{ o.request?.productName || 'Produit' }} × {{ o.request?.quantity || '-' }}</p>
               </td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ o.pharmacyName }}</td>
-              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ o.totalPrice | number }} FCFA</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ o.pharmacy?.name || 'Pharmacie' }}</td>
+              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ o.totalAmount | number }} FCFA</td>
               <td class="px-5 py-4">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.status]">{{ STATUS_LABELS[o.status] }}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.orderStatus]">{{ STATUS_LABELS[o.orderStatus] }}</span>
               </td>
               <td class="px-5 py-4 text-xs text-slate-500">{{ o.createdAt | date:'dd/MM/yyyy' }}</td>
             </tr>

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
-import { generateAccessToken, generateRefreshToken } from '../lib/jwt';
+import { generateAccessToken, generateRefreshToken, verifyToken } from '../lib/jwt';
 import { requireAuth } from '../middleware/auth';
 import { AppError } from '../middleware/error-handler';
 

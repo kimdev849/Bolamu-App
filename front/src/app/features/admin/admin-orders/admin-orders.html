@@ -65,23 +65,23 @@
           @for (order of filteredOrders(); track order.id) {
             <tr class="hover:bg-slate-50/50 transition-colors">
               <td class="px-5 py-4">
-                <p class="text-sm font-semibold text-slate-900">{{ order.id }}</p>
-                <p class="text-xs text-slate-400">{{ order.productName }}</p>
+                <p class="text-sm font-semibold text-slate-900">{{ order.reference || order.id }}</p>
+                <p class="text-xs text-slate-400">{{ order.request?.productName || 'Produit' }}</p>
               </td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ order.pharmacyName }}</td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ order.wholesalerName }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ order.pharmacy?.name || 'Pharmacie' }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ order.wholesaler?.name || 'Grossiste' }}</td>
               <td class="px-5 py-4">
-                <p class="text-sm font-bold text-slate-900">{{ order.totalPrice | number }} FCFA</p>
-                <p class="text-xs text-slate-400">{{ order.quantity }} {{ order.unit }} × {{ order.unitPrice }} F</p>
+                <p class="text-sm font-bold text-slate-900">{{ order.totalAmount | number }} FCFA</p>
+                <p class="text-xs text-slate-400">{{ order.request?.quantity || '-' }} unité(s)</p>
               </td>
               <td class="px-5 py-4">
-                <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="statusColors[order.status] || 'bg-slate-100 text-slate-500'">
-                  {{ statusLabels[order.status] || order.status }}
+                <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="statusColors[order.orderStatus] || 'bg-slate-100 text-slate-500'">
+                  {{ statusLabels[order.orderStatus] || order.orderStatus }}
                 </span>
               </td>
               <td class="px-5 py-4">
-                <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="order.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : order.paymentStatus === 'unpaid' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'">
-                  {{ order.paymentStatus === 'paid' ? 'Payé' : order.paymentStatus === 'unpaid' ? 'Impayé' : order.paymentStatus }}
+                <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="order.paymentStatus === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : order.paymentStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'">
+                  {{ order.paymentStatus === 'CONFIRMED' ? 'Payé' : order.paymentStatus === 'PENDING' ? 'Impayé' : order.paymentStatus }}
                 </span>
               </td>
               <td class="px-5 py-4 text-xs text-slate-500">{{ order.createdAt | date:'dd/MM/yyyy' }}</td>

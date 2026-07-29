@@ -24,7 +24,7 @@ export class DeliveryMissions implements OnInit {
 
   updateStatus(id: string, newStatus: string): void {
     this.deliveries.update(all =>
-      all.map(d => d.id === id ? { ...d, deliveryStatus: newStatus } : d)
+      all.map(d => d.id === id ? { ...d, status: newStatus } : d)
     );
   }
 }

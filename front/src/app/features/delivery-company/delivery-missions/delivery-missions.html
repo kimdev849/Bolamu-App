@@ -14,18 +14,18 @@
             </div>
             <div>
               <p class="text-sm font-bold text-slate-900">Commande {{ d.id }}</p>
-              <p class="text-xs text-slate-400">{{ d.productName }} · {{ d.pharmacyName }}</p>
+              <p class="text-xs text-slate-400">{{ d.request?.productName || 'Commande' }} · {{ d.pharmacy?.name || 'Pharmacie' }}</p>
             </div>
           </div>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[d.deliveryStatus || ''] || 'bg-slate-100 text-slate-500'">{{ STATUS_LABELS[d.deliveryStatus || ''] || d.deliveryStatus }}</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[d.status || ''] || 'bg-slate-100 text-slate-500'">{{ STATUS_LABELS[d.status || ''] || d.status }}</span>
         </div>
 
-        @if (d.deliveryStatus !== 'delivered') {
+        @if (d.status !== 'DELIVERED' && d.status !== 'COMPLETED') {
           <div class="flex gap-2 mt-3">
-            @if (d.deliveryStatus === 'pending') { <button (click)="updateStatus(d.id, 'assigned')" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Assigner</button> }
-            @if (d.deliveryStatus === 'assigned') { <button (click)="updateStatus(d.id, 'picked_up')" class="px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700">Marquer récupéré</button> }
-            @if (d.deliveryStatus === 'picked_up') { <button (click)="updateStatus(d.id, 'in_transit')" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700">En transit</button> }
-            @if (d.deliveryStatus === 'in_transit') { <button (click)="updateStatus(d.id, 'delivered')" class="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Marquer livré</button> }
+            @if (d.status === 'PENDING') { <button (click)="updateStatus(d.id, 'ASSIGNED')" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Assigner</button> }
+            @if (d.status === 'ASSIGNED') { <button (click)="updateStatus(d.id, 'PICKED_UP')" class="px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700">Marquer récupéré</button> }
+            @if (d.status === 'PICKED_UP') { <button (click)="updateStatus(d.id, 'IN_TRANSIT')" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700">En transit</button> }
+            @if (d.status === 'IN_TRANSIT') { <button (click)="updateStatus(d.id, 'DELIVERED')" class="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Marquer livré</button> }
           </div>
         }
       </div>

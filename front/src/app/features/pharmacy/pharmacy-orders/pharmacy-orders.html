@@ -37,19 +37,19 @@
           @for (o of filteredOrders(); track o.id) {
             <tr class="hover:bg-slate-50/50 transition-colors">
               <td class="px-5 py-4">
-                <p class="text-sm font-semibold text-slate-900">{{ o.id }}</p>
-                <p class="text-xs text-slate-400">{{ o.productName }} × {{ o.quantity }}</p>
+                <p class="text-sm font-semibold text-slate-900">{{ o.reference || o.id }}</p>
+                <p class="text-xs text-slate-400">{{ o.request?.productName || 'Produit' }} × {{ o.request?.quantity || '-' }}</p>
               </td>
-              <td class="px-5 py-4 text-sm text-slate-700">{{ o.wholesalerName }}</td>
-              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ o.totalPrice | number }} FCFA</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ o.wholesaler?.name || 'Grossiste' }}</td>
+              <td class="px-5 py-4 text-sm font-bold text-slate-900">{{ o.totalAmount | number }} FCFA</td>
               <td class="px-5 py-4">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.status]">{{ STATUS_LABELS[o.status] }}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.orderStatus]">{{ STATUS_LABELS[o.orderStatus] }}</span>
               </td>
               <td class="px-5 py-4">
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  [class.bg-emerald-100]="o.paymentStatus === 'paid'" [class.text-emerald-700]="o.paymentStatus === 'paid'"
-                  [class.bg-amber-100]="o.paymentStatus === 'unpaid'" [class.text-amber-700]="o.paymentStatus === 'unpaid'">
-                  {{ o.paymentStatus === 'paid' ? 'Payé' : 'Impayé' }}
+                  [class.bg-emerald-100]="o.paymentStatus === 'CONFIRMED'" [class.text-emerald-700]="o.paymentStatus === 'CONFIRMED'"
+                  [class.bg-amber-100]="o.paymentStatus === 'PENDING'" [class.text-amber-700]="o.paymentStatus === 'PENDING'">
+                  {{ o.paymentStatus === 'CONFIRMED' ? 'Payé' : 'Impayé' }}
                 </span>
               </td>
               <td class="px-5 py-4 text-xs text-slate-500">{{ o.createdAt | date:'dd/MM/yyyy' }}</td>

@@ -71,7 +71,7 @@ export class AdminOrders implements OnInit {
     const rows = this.filteredOrders();
     const csv = [
       ['ID', 'Pharmacie', 'Grossiste', 'Produit', 'Montant', 'Statut', 'Date'].join(','),
-      ...rows.map((o: any) => [o.id, o.pharmacyName, o.wholesalerName, o.productName, o.totalAmount || 0, o.orderStatus || o.status, o.createdAt].join(',')),
+      ...rows.map((o: any) => [o.reference || o.id, o.pharmacy?.name || '', o.wholesaler?.name || '', o.request?.productName || '', o.totalAmount || 0, o.orderStatus, o.createdAt].join(',')),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

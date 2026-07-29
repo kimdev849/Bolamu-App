@@ -46,7 +46,9 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     prisma.order.findMany({
       where, skip, take: limit, orderBy: { createdAt: 'desc' },
       include: {
-        request: { select: { id: true, reference: true, isUrgent: true, notes: true } },
+        request: { select: { id: true, reference: true, isUrgent: true, notes: true, productName: true, quantity: true } },
+        pharmacy: { select: { id: true, name: true, phone: true } },
+        wholesaler: { select: { id: true, name: true, phone: true } },
         delivery: { include: { deliveryCompany: { select: { id: true, name: true } } } },
         payment: true,
       },

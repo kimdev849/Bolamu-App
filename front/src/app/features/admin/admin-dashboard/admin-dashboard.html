@@ -56,8 +56,8 @@
               </span>
             </div>
             <div class="flex items-center justify-between">
-              <p class="text-xs text-slate-500">{{ req.pharmacyName }} · {{ req.quantity }} {{ req.unit }}</p>
-              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded" [class]="URGENCY_COLORS[req.urgency] || ''">{{ URGENCY_LABELS[req.urgency] || req.urgency }}</span>
+              <p class="text-xs text-slate-500">{{ req.pharmacy?.name || 'Pharmacie' }} · {{ req.quantity }} unité(s)</p>
+              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded" [class]="req.isUrgent ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">{{ req.isUrgent ? 'Urgent' : 'Normal' }}</span>
             </div>
           </div>
         }
@@ -146,16 +146,16 @@
               <td class="px-6 py-4">
                 <span class="font-semibold text-slate-900">{{ order.id }}</span>
               </td>
-              <td class="px-6 py-4 text-slate-600">{{ order.pharmacyName }}</td>
-              <td class="px-6 py-4 text-slate-600">{{ order.wholesalerName }}</td>
+              <td class="px-6 py-4 text-slate-600">{{ order.pharmacy?.name || 'Pharmacie' }}</td>
+              <td class="px-6 py-4 text-slate-600">{{ order.wholesaler?.name || 'Grossiste' }}</td>
               <td class="px-6 py-4">
-                <span class="text-slate-900 font-medium">{{ order.productName }}</span>
-                <span class="text-slate-400 ml-1">×{{ order.quantity }}</span>
+                <span class="text-slate-900 font-medium">{{ order.request?.productName || 'Produit' }}</span>
+                <span class="text-slate-400 ml-1">×{{ order.request?.quantity || '-' }}</span>
               </td>
-              <td class="px-6 py-4 font-semibold text-slate-900">{{ order.totalPrice | fcfa }}</td>
+              <td class="px-6 py-4 font-semibold text-slate-900">{{ order.totalAmount | fcfa }}</td>
               <td class="px-6 py-4">
-                <span class="text-xs px-2.5 py-1 rounded-full font-semibold" [class]="STATUS_COLORS[order.status] || 'bg-slate-100 text-slate-600'">
-                  {{ STATUS_LABELS[order.status] || order.status }}
+                <span class="text-xs px-2.5 py-1 rounded-full font-semibold" [class]="STATUS_COLORS[order.orderStatus] || 'bg-slate-100 text-slate-600'">
+                  {{ STATUS_LABELS[order.orderStatus] || order.orderStatus }}
                 </span>
               </td>
             </tr>

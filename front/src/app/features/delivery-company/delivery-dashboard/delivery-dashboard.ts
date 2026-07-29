@@ -17,8 +17,8 @@ export class DeliveryDashboard implements OnInit {
   missions: any[] = [];
   agents: any[] = [];
 
-  get activeMissions() { return this.missions.filter((m: any) => m.deliveryStatus !== 'delivered').length; }
-  get completedMissions() { return this.missions.filter((m: any) => m.deliveryStatus === 'delivered').length; }
+  get activeMissions() { return this.missions.filter((m: any) => m.status !== 'DELIVERED' && m.status !== 'COMPLETED').length; }
+  get completedMissions() { return this.missions.filter((m: any) => m.status === 'DELIVERED' || m.status === 'COMPLETED').length; }
   get activeAgents() { return this.agents.filter((a: any) => a.isActive).length; }
 
   ngOnInit(): void {

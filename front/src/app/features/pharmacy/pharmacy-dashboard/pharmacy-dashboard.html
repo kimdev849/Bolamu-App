@@ -75,7 +75,7 @@
           <div class="px-6 py-3.5 flex items-center justify-between">
             <div>
               <p class="text-sm font-semibold text-slate-900">{{ r.productName }}</p>
-              <p class="text-xs text-slate-400">{{ r.quantity }} {{ r.unit }}</p>
+              <p class="text-xs text-slate-400">{{ r.quantity }} unité(s)</p>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[r.status] || 'bg-slate-100 text-slate-500'">{{ STATUS_LABELS[r.status] || r.status }}</span>
@@ -95,12 +95,12 @@
         @for (o of myOrders().slice(0, 4); track o.id) {
           <div class="px-6 py-3.5 flex items-center justify-between">
             <div>
-              <p class="text-sm font-semibold text-slate-900">{{ o.productName }}</p>
-              <p class="text-xs text-slate-400">{{ o.wholesalerName }} · {{ o.quantity }} {{ o.unit }}</p>
+              <p class="text-sm font-semibold text-slate-900">{{ o.request?.productName || o.reference || 'Produit' }}</p>
+              <p class="text-xs text-slate-400">{{ o.wholesaler?.name || 'Grossiste' }} · {{ o.request?.quantity || '-' }} unité(s)</p>
             </div>
             <div class="text-right">
-              <p class="text-sm font-bold text-slate-900">{{ o.totalPrice.toLocaleString() }} FCFA</p>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-500'">{{ STATUS_LABELS[o.status] || o.status }}</span>
+              <p class="text-sm font-bold text-slate-900">{{ (o.totalAmount||0).toLocaleString() }} FCFA</p>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.orderStatus] || 'bg-slate-100 text-slate-500'">{{ STATUS_LABELS[o.orderStatus] || o.orderStatus }}</span>
             </div>
           </div>
         }
