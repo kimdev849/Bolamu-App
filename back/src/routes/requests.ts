@@ -43,7 +43,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
   const where: any = {};
 
   const isPharmacy = role === 'PHARMACY_ADMIN' || role === 'PHARMACY_USER';
-  const isWholesaler = role === 'WHOLESALER_ADMIN' || role === 'WHOLESALER_USER' || role === 'WHOLESALER_ADMIN';
+  const isWholesaler = role === 'WHOLESALER_ADMIN' || role === 'WHOLESALER_USER';
 
   if (isPharmacy) {
     const pharmacyId = await getPharmacyId(userId);
@@ -302,7 +302,6 @@ router.post('/:id/confirm', requireAuth, async (req: Request, res: Response) => 
     if (!request || request.pharmacyId !== pharmacyId) throw { status: 404, message: 'Demande non trouvée' };
     if (request.status !== 'FOUND') throw { status: 400, message: 'Impossible de confirmer' };
 
-    await tx.request.update({ where: { id: request.id }, data: { status: 'FOUND' } });
     if (request.order) {
       await tx.order.update({ where: { id: request.order.id }, data: { orderStatus: 'CONFIRMED' } });
     }

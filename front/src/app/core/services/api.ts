@@ -107,9 +107,9 @@ export class Api {
     return this.http.get<ApiResponse<WholesalerDashboardData>>(`${this.baseUrl}/wholesalers/dashboard`);
   }
 
-  /** Alias: get requests visible to the current wholesaler (for FCFS) */
-  getMyWholesalerRequests(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/wholesalers/requests`);
+  /** Alias: get requests visible to the current wholesaler (for FCFS) - uses the /requests endpoint with status=searching */
+  getMyWholesalerRequests(): Observable<ApiResponse<any[]> & { pagination: PaginationInfo }> {
+    return this.getRequests({ status: 'searching', limit: 50 });
   }
 
   // ───── Delivery Companies ─────
@@ -138,19 +138,19 @@ export class Api {
     return this.http.patch<ApiResponse<DeliveryAgent>>(`${this.baseUrl}/delivery-companies/agents/${id}/toggle`, {});
   }
 
-  /** Alias: get delivery missions (orders with delivery tracking) */
-  getDeliveryMissions(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/delivery-companies/missions`);
+  /** Alias: get delivery missions - uses the /orders endpoint filtered by delivery company */
+  getDeliveryMissions(): Observable<ApiResponse<any[]> & { pagination: PaginationInfo }> {
+    return this.getOrders({ limit: 50 });
   }
 
   // ───── Requests ─────
 
-  getMyRequests(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/pharmacies/requests`);
+  getMyRequests(): Observable<ApiResponse<any[]> & { pagination: PaginationInfo }> {
+    return this.getRequests({ limit: 50 });
   }
 
-  getMyOrders(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/pharmacies/orders`);
+  getMyOrders(): Observable<ApiResponse<any[]> & { pagination: PaginationInfo }> {
+    return this.getOrders({ limit: 50 });
   }
 
   getRequests(params?: { status?: string; urgency?: string; page?: number; limit?: number }): Observable<ApiResponse<ProductRequest[]> & { pagination: PaginationInfo }> {

@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { finalize } from 'rxjs';
 import { Api } from '../../../core/services/api';
-import { Auth } from '../../../core/services/auth';
+import { Toast } from '../../../core/services/toast';
 
 @Component({
   selector: 'psr-delivery-agents',
@@ -10,21 +11,25 @@ import { Auth } from '../../../core/services/auth';
 })
 export class DeliveryAgents implements OnInit {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
 
   readonly agents = signal<any[]>([]);
   readonly showAddForm = signal(false);
+  readonly isSubmitting = signal(false);
   readonly newFirstName = signal('');
   readonly newLastName = signal('');
   readonly newEmail = signal('');
   readonly newPhone = signal('');
-  readonly newVehicleType = signal('motorcycle');
-  readonly newVehiclePlate = signal('');
 
   readonly vehicleLabels: Record<string, string> = {
     motorcycle: 'Moto', car: 'Voiture', van: 'Camionnette', truck: 'Camion',
   };
 
   ngOnInit(): void {
+    this.loadAgents();
+  }
+
+  private loadAgents(): void {
     this.api.getDeliveryAgents().subscribe({
       next: (res) => { this.agents.set(res.data || []); },
     });
@@ -33,29 +38,39 @@ export class DeliveryAgents implements OnInit {
   addAgent(): void {
     const firstName = this.newFirstName();
     const lastName = this.newLastName();
-    if (!firstName || !lastName) return;
-    const newAgent = {
-      id: `AGT-${Date.now()}`,
-      firstName, lastName,
-      email: this.newEmail(),
-      phone: this.newPhone(),
-      vehicleType: this.newVehicleType(),
-      vehiclePlate: this.newVehiclePlate(),
-      isActive: true,
-    };
-    this.agents.update(a => [newAgent, ...a]);
-    this.showAddForm.set(false);
-    this.newFirstName.set('');
-    this.newLastName.set('');
-    this.newEmail.set('');
-    this.newPhone.set('');
-    this.newVehicleType.set('motorcycle');
-    this.newVehiclePlate.set('');
+    if (!firstName || !lastName) {
+      this.toast.warning('Champs requis', 'Prénom et nom sont requis');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.api.createDeliveryAgent({ firstName, lastName, email: this.newEmail(), phone: this.newPhone() })
+      .pipe(finalize(() => this.isSubmitting.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Livreur ajouté', 'Le livreur a été créé avec succès');
+          this.showAddForm.set(false);
+          this.newFirstName.set('');
+          this.newLastName.set('');
+          this.newEmail.set('');
+          this.newPhone.set('');
+          this.loadAgents();
+        },
+        error: (err) => {
+          this.toast.error('Erreur', err.error?.message || 'Impossible de créer le livreur');
+        },
+      });
   }
 
   toggleActive(a: any): void {
-    this.agents.update(all =>
-      all.map(ag => ag.id === a.id ? { ...ag, isActive: !ag.isActive } : ag)
-    );
+    this.api.toggleDeliveryAgent(a.id).subscribe({
+      next: () => {
+        this.toast.success('Statut mis à jour', `Le livreur est maintenant ${a.isActive ? 'désactivé' : 'activé'}`);
+        this.loadAgents();
+      },
+      error: (err) => {
+        this.toast.error('Erreur', err.error?.message || 'Impossible de modifier le statut');
+      },
+    });
   }
 }

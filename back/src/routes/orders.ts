@@ -33,13 +33,21 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 
   if (ids.pharmacyId) where.pharmacyId = ids.pharmacyId;
   else if (ids.wholesalerId) where.wholesalerId = ids.wholesalerId;
-  else if (ids.deliveryCompanyId) where.deliveryCompanyId = ids.deliveryCompanyId;
+  else if (ids.deliveryCompanyId) {
+    // DeliveryCompany relationship goes through the Delivery model
+    const deliveryOrderIds = (await prisma.delivery.findMany({
+      where: { deliveryCompanyId: ids.deliveryCompanyId },
+      select: { orderId: true },
+    })).map(d => d.orderId);
+    where.id = { in: deliveryOrderIds };
+  }
 
   const [data, total] = await Promise.all([
     prisma.order.findMany({
       where, skip, take: limit, orderBy: { createdAt: 'desc' },
       include: {
         request: { select: { id: true, reference: true, isUrgent: true, notes: true } },
+        delivery: { include: { deliveryCompany: { select: { id: true, name: true } } } },
         payment: true,
       },
     }),

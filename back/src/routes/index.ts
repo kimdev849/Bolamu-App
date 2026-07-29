@@ -7,6 +7,7 @@ import deliveryCompanyRoutes from './delivery-companies';
 import requestRoutes from './requests';
 import orderRoutes from './orders';
 import onboardingRoutes from './onboarding';
+import notificationRoutes from './notifications';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/delivery-companies', deliveryCompanyRoutes);
 router.use('/requests', requestRoutes);
 router.use('/orders', orderRoutes);
 router.use('/onboarding', onboardingRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

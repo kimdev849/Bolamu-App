@@ -118,20 +118,18 @@ router.post('/agents', requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  const { firstName, lastName, email, phone, vehicleType, vehiclePlate } = req.body;
-  if (!firstName || !lastName || !phone || !vehicleType || !vehiclePlate) {
-    res.status(400).json({ success: false, message: 'Champs requis : firstName, lastName, phone, vehicleType, vehiclePlate' });
+  const { firstName, lastName, email, phone } = req.body;
+  if (!firstName || !lastName || !phone) {
+    res.status(400).json({ success: false, message: 'Champs requis : firstName, lastName, phone' });
     return;
   }
 
-  const agent = await (prisma.deliveryAgent as any).create({
+  const agent = await prisma.deliveryAgent.create({
     data: {
-      firstName: firstName,
-      lastName: lastName,
-      email: email || '',
-      phone: phone,
-      vehicleType: vehicleType,
-      vehiclePlate: vehiclePlate,
+      firstName,
+      lastName,
+      email: email || null,
+      phone,
       deliveryCompanyId: user.deliveryCompanyId,
     },
   });

@@ -200,4 +200,84 @@ router.post('/change-password', requireAuth, async (req: Request, res: Response)
   res.json({ success: true, message: 'Mot de passe changé avec succès' });
 });
 
+/** POST /api/auth/register — Inscription publique (création simple, sans entité liée) */
+router.post('/register', async (req: Request, res: Response) => {
+  const { email, password, firstName, lastName, phone } = req.body;
+  if (!email || !password || !firstName || !lastName) {
+    res.status(400).json({ success: false, message: 'Champs requis : email, password, firstName, lastName' });
+    return;
+  }
+  if (password.length < 6) {
+    res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' });
+    return;
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    res.status(409).json({ success: false, message: 'Cet email est déjà utilisé' });
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: {
+      email, password: hashedPassword, firstName, lastName, phone: phone || null,
+      role: 'PHARMACY_USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    },
+  });
+
+  const payload = { userId: user.id, email: user.email, role: user.role };
+
+  res.status(201).json({
+    success: true,
+    message: 'Compte créé avec succès',
+    data: {
+      user: {
+        id: user.id, email: user.email, firstName: user.firstName,
+        lastName: user.lastName, role: user.role,
+      },
+      tokens: {
+        accessToken: generateAccessToken(payload),
+        refreshToken: generateRefreshToken(payload),
+      },
+    },
+  });
+});
+
+/** POST /api/auth/refresh — Rafraîchir le token */
+router.post('/refresh', async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    res.status(400).json({ success: false, message: 'Refresh token requis' });
+    return;
+  }
+
+  try {
+    const decoded = verifyToken(refreshToken);
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    if (!user || user.status !== 'ACTIVE') {
+      res.status(401).json({ success: false, message: 'Compte inactif ou inexistant' });
+      return;
+    }
+
+    const payload = { userId: user.id, email: user.email, role: user.role };
+    res.json({
+      success: true,
+      data: {
+        accessToken: generateAccessToken(payload),
+        refreshToken: generateRefreshToken(payload),
+      },
+    });
+  } catch {
+    res.status(401).json({ success: false, message: 'Refresh token invalide ou expiré' });
+  }
+});
+
+/** POST /api/auth/logout */
+router.post('/logout', requireAuth, async (_req: Request, res: Response) => {
+  res.json({ success: true, message: 'Déconnexion réussie' });
+});
+
 export default router;

@@ -1,6 +1,8 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { finalize } from 'rxjs';
 import { Api } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
 import { STATUS_LABELS, STATUS_COLORS, URGENCY_LABELS, URGENCY_COLORS } from '../../../core/config/app.constants';
 
 const PRODUCT_SUGGESTIONS = [
@@ -18,12 +20,14 @@ const PRODUCT_SUGGESTIONS = [
 })
 export class PharmacyRequests implements OnInit {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
 
   readonly requests = signal<any[]>([]);
   readonly orders = signal<any[]>([]);
   readonly selectedFilter = signal('all');
   readonly showNewForm = signal(false);
   readonly foundRequest = signal<any>(null);
+  readonly isSubmitting = signal(false);
   readonly timeRemaining = signal<string | null>(null);
 
   readonly newProductName = signal('');
@@ -45,18 +49,31 @@ export class PharmacyRequests implements OnInit {
   protected readonly URGENCY_COLORS = URGENCY_COLORS;
 
   readonly pendingOrders = computed(() => {
-    return this.orders().filter(o => o.paymentStatus === 'PENDING' || o.paymentStatus === 'pending' || o.paymentStatus === 'unpaid');
+    return this.orders().filter(o => o.paymentStatus === 'PENDING' || o.paymentStatus === 'pending');
   });
 
   ngOnInit(): void {
+    this.loadRequests();
+    this.loadOrders();
+  }
+
+  private loadRequests(): void {
     this.api.getMyRequests().subscribe({
       next: (res) => {
         const data = res.data || [];
         this.requests.set(data);
-        const found = data.find((r: any) => r.status === 'FOUND' || r.status === 'found');
-        if (found) this.foundRequest.set(found);
+        const found = data.find((r: any) => r.status === 'FOUND');
+        if (found) {
+          // Fetch full detail to get order pricing info
+          this.api.getRequestDetail(found.id).subscribe({
+            next: (detailRes) => this.foundRequest.set(detailRes.data),
+          });
+        }
       },
     });
+  }
+
+  private loadOrders(): void {
     this.api.getMyOrders().subscribe({
       next: (res) => this.orders.set(res.data || []),
     });
@@ -72,26 +89,32 @@ export class PharmacyRequests implements OnInit {
   }
 
   submitRequest(): void {
-    const name = this.newProductName();
-    if (!name) return;
-    const newReq = {
-      id: `REQ-${Date.now()}`,
-      productName: name,
+    const productName = this.newProductName();
+    if (!productName) return;
+
+    this.isSubmitting.set(true);
+    this.api.createRequest({
+      productName,
       dosage: this.newDosage() || undefined,
       quantity: this.newQuantity(),
-      unit: 'boîte',
-      urgency: this.newUrgency(),
+      isUrgent: this.newUrgency() === 'urgent' || this.newUrgency() === 'emergency',
       notes: this.newNotes() || undefined,
-      status: 'SEARCHING',
-      createdAt: new Date().toISOString(),
-    };
-    this.requests.update(reqs => [newReq, ...reqs]);
-    this.showNewForm.set(false);
-    this.newProductName.set('');
-    this.newDosage.set('');
-    this.newQuantity.set(1);
-    this.newUrgency.set('normal');
-    this.newNotes.set('');
+    }).pipe(finalize(() => this.isSubmitting.set(false)))
+    .subscribe({
+      next: () => {
+        this.toast.success('Demande créée', 'Votre demande a été soumise avec succès');
+        this.showNewForm.set(false);
+        this.newProductName.set('');
+        this.newDosage.set('');
+        this.newQuantity.set(1);
+        this.newUrgency.set('normal');
+        this.newNotes.set('');
+        this.loadRequests();
+      },
+      error: (err) => {
+        this.toast.error('Erreur', err.error?.message || 'Impossible de créer la demande');
+      },
+    });
   }
 
   getWholesalerName(wholesalerId: string): string {
@@ -99,15 +122,36 @@ export class PharmacyRequests implements OnInit {
   }
 
   confirmOrder(found: any): void {
-    this.foundRequest.set(null);
+    this.api.confirmRequest(found.id).subscribe({
+      next: () => {
+        this.toast.success('Commande confirmée', 'La commande a été confirmée avec succès');
+        this.foundRequest.set(null);
+        this.loadRequests();
+        this.loadOrders();
+      },
+      error: (err) => this.toast.error('Erreur', err.error?.message || 'Impossible de confirmer'),
+    });
   }
 
   cancelFoundRequest(found: any): void {
-    this.requests.update(reqs => reqs.map(r => r.id === found.id ? { ...r, status: 'CANCELLED' } : r));
-    this.foundRequest.set(null);
+    this.api.cancelRequest(found.id).subscribe({
+      next: () => {
+        this.toast.success('Demande annulée', 'La demande a été annulée');
+        this.foundRequest.set(null);
+        this.loadRequests();
+      },
+      error: (err) => this.toast.error('Erreur', err.error?.message || 'Impossible d\'annuler'),
+    });
   }
 
   markPaid(requestId: string): void {
-    this.orders.update(ords => ords.map(o => o.requestId === requestId ? { ...o, paymentStatus: 'paid' } : o));
+    this.api.markRequestPaid(requestId).subscribe({
+      next: () => {
+        this.toast.success('Paiement confirmé', 'Le paiement a été enregistré');
+        this.loadOrders();
+        this.loadRequests();
+      },
+      error: (err) => this.toast.error('Erreur', err.error?.message || 'Impossible de marquer comme payé'),
+    });
   }
 }

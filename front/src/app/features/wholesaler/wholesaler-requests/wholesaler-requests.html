@@ -3,7 +3,7 @@
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Demandes</h1>
-      <p class="text-xs text-slate-500">{{ requests().filter(r => r.status === 'searching').length }} actives · {{ requests().filter(r => r.responses?.some(rs => rs.wholesalerId === wholesalerId)).length }} traitées</p>
+      <p class="text-xs text-slate-500">{{ requests().filter(r => r.status === 'SEARCHING').length }} actives · {{ requests().filter(r => r.status === 'FOUND').length }} attribuées</p>
     </div>
     <div class="flex gap-1">
       @for (f of ['all', 'searching', 'found', 'confirmed', 'cancelled']; track f) {
@@ -112,7 +112,7 @@
         </div>
 
       <!-- === CARTE FOUND par d'autres (grisée) === -->
-      } @else if (r.status === 'found' && r.foundById !== wholesalerId && !hasResponded(r.id)) {
+      } @else if (r.status === 'FOUND' && !hasResponded(r.id)) {
         <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 opacity-60">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center">

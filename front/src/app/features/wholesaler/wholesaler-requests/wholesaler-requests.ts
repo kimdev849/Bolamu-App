@@ -1,6 +1,9 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
+import { finalize } from 'rxjs';
 import { STATUS_LABELS, STATUS_COLORS, URGENCY_LABELS, URGENCY_COLORS } from '../../../core/config/app.constants';
 import { Api } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
+import { Auth } from '../../../core/services/auth';
 
 const DELIVERY_FEES: Record<string, number> = {
   'Brazzaville': 1000, 'Pointe-Noire': 1500, 'Talangaï': 1500,
@@ -15,6 +18,11 @@ const DELIVERY_FEES: Record<string, number> = {
 })
 export class WholesalerRequests implements OnInit, OnDestroy {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
+  private readonly auth = inject(Auth);
+
+  /** Current wholesaler ID from the user profile (set after profile load) */
+  readonly currentWholesalerId = signal<string | null>(null);
 
   readonly requests = signal<any[]>([]);
   readonly selectedFilter = signal('all');
@@ -22,8 +30,7 @@ export class WholesalerRequests implements OnInit, OnDestroy {
   readonly expandedId = signal<string | null>(null);
   readonly timers = signal<Record<string, string>>({});
   readonly inlinePrice = signal(0);
-
-  readonly wholesalerId = `WS-${Date.now()}`;
+  readonly isProcessing = signal<string | null>(null);
 
   private allRequests: any[] = [];
   private orders: any[] = [];
@@ -35,27 +42,44 @@ export class WholesalerRequests implements OnInit, OnDestroy {
   protected readonly URGENCY_COLORS = URGENCY_COLORS;
 
   ngOnInit(): void {
+    this.loadWholesalerProfile();
+    this.loadRequests();
+    this.loadOrders();
+  }
+
+  private loadWholesalerProfile(): void {
+    if (this.auth.currentUser()) {
+      this.api.getMyWholesalerProfile().subscribe({
+        next: (res) => {
+          if (res.data?.id) this.currentWholesalerId.set(res.data.id);
+        },
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.intervalId) clearInterval(this.intervalId);
+  }
+
+  private loadRequests(): void {
     this.api.getMyWholesalerRequests().subscribe({
       next: (res) => {
         this.allRequests = (res.data || []).map((r: any) => ({
           ...r,
-          status: (r.status || 'searching').toLowerCase(),
-          urgent: r.urgency === 'emergency' || r.urgency === 'high',
+          status: r.status || 'SEARCHING',
           responses: r.responses || [],
           createdAt: r.createdAt || new Date().toISOString(),
-          pharmacyCity: this.getPharmacyCity(r.pharmacyId),
         }));
         this.applyFilter();
         this.startTimers();
       },
     });
+  }
+
+  private loadOrders(): void {
     this.api.getOrders({ limit: 100 }).subscribe({
       next: (res) => { this.orders = res.data || []; },
     });
-  }
-
-  ngOnDestroy(): void {
-    if (this.intervalId) clearInterval(this.intervalId);
   }
 
   private startTimers(): void {
@@ -63,14 +87,11 @@ export class WholesalerRequests implements OnInit, OnDestroy {
       const now = Date.now();
       const newTimers: Record<string, string> = {};
       for (const r of this.allRequests) {
-        if (r.status !== 'searching') continue;
+        if (r.status !== 'SEARCHING') continue;
         const elapsed = now - new Date(r.createdAt).getTime();
         const remaining = Math.max(0, 30 * 60 * 1000 - elapsed);
         if (remaining <= 0) {
           newTimers[r.id] = 'Expiré';
-          this.allRequests = this.allRequests.map(req =>
-            req.id === r.id ? { ...req, status: 'expired' } : req
-          );
         } else {
           const m = Math.floor(remaining / 60000);
           const s = Math.floor((remaining % 60000) / 1000);
@@ -90,9 +111,11 @@ export class WholesalerRequests implements OnInit, OnDestroy {
 
   private applyFilter(): void {
     const f = this.selectedFilter();
-    this.filteredRequests.set(
-      f === 'all' ? [...this.allRequests] : this.allRequests.filter((r: any) => r.status === f)
-    );
+    if (f === 'all') {
+      this.filteredRequests.set([...this.allRequests]);
+    } else {
+      this.filteredRequests.set(this.allRequests.filter((r: any) => r.status === f.toUpperCase()));
+    }
   }
 
   expandCard(r: any): void {
@@ -102,51 +125,55 @@ export class WholesalerRequests implements OnInit, OnDestroy {
 
   confirmAccept(r: any): void {
     const price = this.inlinePrice();
-    if (price <= 0) return;
-    const response = {
-      id: `RESP-${Date.now()}`,
-      requestId: r.id,
-      wholesalerId: this.wholesalerId,
-      type: 'accepted',
-      unitPrice: price,
-      createdAt: new Date().toISOString(),
-    };
-    this.allRequests = this.allRequests.map(req =>
-      req.id === r.id ? { ...req, status: 'found', foundById: this.wholesalerId, responses: [...(req.responses || []), response] } : req
-    );
-    const order = {
-      id: `ORD-${Date.now()}`,
-      requestId: r.id,
-      productName: r.productName,
-      quantity: r.quantity,
-      unit: r.unit,
-      unitPrice: price,
-      deliveryPrice: this.calcDeliveryFee(r.pharmacyId),
-      totalPrice: price * r.quantity + this.calcDeliveryFee(r.pharmacyId),
-      status: 'CREATED',
-      pharmacyName: r.pharmacyName,
-      createdAt: new Date().toISOString(),
-    };
-    this.orders = [order, ...this.orders];
-    this.expandedId.set(null);
-    this.applyFilter();
+    if (price <= 0) {
+      this.toast.warning('Prix requis', 'Veuillez saisir un prix valide');
+      return;
+    }
+
+    this.isProcessing.set(r.id);
+    this.api.acceptRequest(r.id, price)
+      .pipe(finalize(() => this.isProcessing.set(null)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Demande acceptée', 'La commande a été créée avec succès');
+          this.expandedId.set(null);
+          this.inlinePrice.set(0);
+          this.loadRequests();
+          this.loadOrders();
+        },
+        error: (err) => {
+          this.toast.error('Erreur', err.error?.message || 'Impossible d\'accepter la demande');
+        },
+      });
   }
 
   declineRequest(r: any): void {
-    this.allRequests = this.allRequests.map(req =>
-      req.id === r.id ? { ...req, responses: [...(req.responses || []), { id: `RESP-${Date.now()}`, requestId: r.id, wholesalerId: this.wholesalerId, type: 'declined', createdAt: new Date().toISOString() }] } : req
-    );
-    this.applyFilter();
+    this.isProcessing.set(r.id);
+    this.api.declineRequest(r.id)
+      .pipe(finalize(() => this.isProcessing.set(null)))
+      .subscribe({
+        next: () => {
+          this.toast.info('Demande déclinée', 'La demande reste ouverte pour les autres grossistes');
+          this.loadRequests();
+        },
+        error: (err) => {
+          this.toast.error('Erreur', err.error?.message || 'Impossible de décliner la demande');
+        },
+      });
   }
 
   hasResponded(requestId: string): boolean {
     const r = this.allRequests.find((req: any) => req.id === requestId);
-    return r?.responses?.some((rs: any) => rs.wholesalerId === this.wholesalerId) || false;
+    const myId = this.currentWholesalerId();
+    if (!myId) return false;
+    return r?.responses?.some((rs: any) => rs.wholesalerId === myId) || false;
   }
 
   getMyResponse(requestId: string): any {
     const r = this.allRequests.find((req: any) => req.id === requestId);
-    return r?.responses?.find((rs: any) => rs.wholesalerId === this.wholesalerId);
+    const myId = this.currentWholesalerId();
+    if (!myId) return null;
+    return r?.responses?.find((rs: any) => rs.wholesalerId === myId) || null;
   }
 
   getOrderForRequest(requestId: string): any {

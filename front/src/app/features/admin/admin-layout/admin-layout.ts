@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Sidebar } from '../../../shared/components/layout/sidebar/sidebar';
 import { Navbar } from '../../../shared/components/layout/navbar/navbar';

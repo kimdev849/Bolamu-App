@@ -20,15 +20,15 @@ export class Login {
   private readonly toast = inject(Toast);
   private readonly router = inject(Router);
 
-  /** Map backend roles (SUPER_ADMIN) → frontend roles (admin) */
+  /** Map backend roles (SUPER_ADMIN, PHARMACY_ADMIN, etc.) → frontend roles (admin, pharmacy, etc.) */
   private readonly roleMap: Record<string, string> = {
     SUPER_ADMIN: 'admin',
     PHARMACY_ADMIN: 'pharmacy',
     PHARMACY_USER: 'pharmacy',
     WHOLESALER_ADMIN: 'wholesaler',
     WHOLESALER_USER: 'wholesaler',
-    DELIVERY_COMPANY_ADMIN: 'delivery_company',
-    DELIVERY_COMPANY_USER: 'delivery_company',
+    DELIVERY_ADMIN: 'delivery_company',
+    DELIVERY_USER: 'delivery_company',
     DRIVER: 'delivery_company',
   };
 
