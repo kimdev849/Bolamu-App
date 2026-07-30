@@ -54,7 +54,7 @@
                   </div>
                   <div>
                     <p class="text-sm font-semibold text-slate-900">{{ p.name }}</p>
-                    <p class="text-xs text-slate-400">{{ p.city }}</p>
+                    <p class="text-xs text-slate-400">{{ p.city?.name || p.city || '—' }}</p>
                   </div>
                 </div>
               </td>
