@@ -1,62 +1,205 @@
-<div class="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+<div class="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
+  <!-- Header -->
   <div>
     <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Abonnement</h1>
-    <p class="text-sm text-slate-500 mt-1">Gérez votre abonnement {{ pharmacy.name }}</p>
+    <p class="text-sm text-slate-500 mt-1">Gérez votre formule d'abonnement</p>
   </div>
 
-  <!-- Current plan -->
-  <div class="bg-white rounded-2xl border border-slate-200 p-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Abonnement actuel</p>
-        <div class="flex items-center gap-3 mt-2">
-          <h2 class="text-xl font-bold text-slate-900 capitalize">{{ pharmacy.subscriptionStatus }}</h2>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-            [class.bg-emerald-100]="pharmacy.subscriptionStatus === 'active'" [class.text-emerald-700]="pharmacy.subscriptionStatus === 'active'"
-            [class.bg-amber-100]="pharmacy.subscriptionStatus !== 'active'" [class.text-amber-700]="pharmacy.subscriptionStatus !== 'active'">
-            {{ pharmacy.subscriptionStatus === 'active' ? 'Actif' : 'Inactif' }}
-          </span>
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center py-20">
+      <svg class="w-10 h-10 text-indigo-500 animate-spin mb-4" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+      <p class="text-sm text-slate-400 font-medium">Chargement de votre abonnement...</p>
+    </div>
+  } @else {
+    <!-- Current Subscription Card -->
+    @if (mySubscription(); as sub) {
+      <div class="bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 rounded-2xl p-6 lg:p-8 text-white relative overflow-hidden">
+        <!-- Decorative elements -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
+
+        <div class="relative z-10">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+              <p class="text-indigo-200 text-xs font-semibold uppercase tracking-wider mb-1">Abonnement actuel</p>
+              <div class="flex items-center gap-3">
+                <h2 class="text-2xl lg:text-3xl font-extrabold">{{ sub.planName }}</h2>
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+                  [class.bg-emerald-400/20]="sub.status === 'ACTIVE'"
+                  [class.text-emerald-300]="sub.status === 'ACTIVE'"
+                  [class.bg-blue-400/20]="sub.status === 'TRIAL'"
+                  [class.text-blue-300]="sub.status === 'TRIAL'"
+                  [class.bg-red-400/20]="sub.status === 'EXPIRED'"
+                  [class.text-red-300]="sub.status === 'EXPIRED'"
+                  [class.bg-slate-400/20]="sub.status === 'CANCELLED'"
+                  [class.text-slate-300]="sub.status === 'CANCELLED'">
+                  <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                  {{ getStatusLabel(sub.status) }}
+                </span>
+              </div>
+            </div>
+            <div class="text-left lg:text-right">
+              <p class="text-3xl lg:text-4xl font-extrabold">{{ sub.price.toLocaleString() }} <span class="text-base font-medium text-indigo-200">FCFA/mois</span></p>
+              @if (sub.status === 'TRIAL' || sub.status === 'ACTIVE') {
+                <p class="text-sm text-indigo-200 mt-1">
+                  @if (sub.daysLeft > 0) {
+                    <span class="inline-flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      @if (sub.status === 'TRIAL') {
+                        {{ sub.daysLeft }} jours d'essai restants
+                      } @else {
+                        Prochain renouvellement dans {{ sub.daysLeft }} jours
+                      }
+                    </span>
+                  } @else {
+                    <span class="text-amber-300 font-semibold">Expire aujourd'hui</span>
+                  }
+                </p>
+              }
+              @if (sub.status === 'CANCELLED') {
+                <p class="text-sm text-indigo-200 mt-1">Abonnement annulé. Souscrivez à nouveau pour continuer.</p>
+              }
+            </div>
+          </div>
+
+          <!-- Features -->
+          @if (sub.planFeatures.length > 0) {
+            <div class="mt-6 pt-6 border-t border-white/10">
+              <div class="flex flex-wrap gap-3">
+                @for (f of sub.planFeatures; track f) {
+                  <span class="inline-flex items-center gap-1.5 text-sm text-indigo-100 bg-white/10 px-3 py-1.5 rounded-lg">
+                    <svg class="w-4 h-4 text-emerald-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    {{ f }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Cancel button -->
+          @if (sub.status === 'ACTIVE' || sub.status === 'TRIAL') {
+            <div class="mt-6 pt-6 border-t border-white/10 flex justify-end">
+              <button (click)="showCancelModal.set(true)" class="text-sm text-indigo-200 hover:text-white transition-colors inline-flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+                Résilier l'abonnement
+              </button>
+            </div>
+          }
         </div>
       </div>
-      <div class="text-right">
-        <p class="text-sm text-slate-500">Expire le</p>
-        <p class="text-lg font-bold text-slate-900">{{ pharmacy.subscriptionEndDate | date:'dd/MM/yyyy' }}</p>
-        @if (getDaysLeft(pharmacy.subscriptionEndDate) > 0) {
-          <p class="text-xs text-amber-600 font-medium">{{ getDaysLeft(pharmacy.subscriptionEndDate) }} jours restants</p>
+    }
+
+    <!-- Plans -->
+    <div>
+      <h2 class="text-lg font-bold text-slate-900 mb-6">Choisissez votre formule</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        @for (plan of plans(); track plan.id) {
+          @const isCurrentPlan = mySubscription()?.plan === plan.id && mySubscription()?.status === 'ACTIVE';
+          <div
+            class="relative bg-white rounded-2xl border-2 p-6 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+            [class.border-indigo-500]="isCurrentPlan"
+            [class.border-slate-200]="!isCurrentPlan && !plan.id.endsWith('PREMIUM')"
+            [class.border-indigo-300]="!isCurrentPlan && plan.id.endsWith('PREMIUM')"
+            [class.shadow-lg]="!isCurrentPlan && plan.id.endsWith('PREMIUM')"
+          >
+            @if (plan.id.endsWith('PREMIUM') && !isCurrentPlan) {
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span class="inline-block px-4 py-1 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-[10px] font-bold rounded-full shadow-lg shadow-indigo-200">POPULAIRE</span>
+              </div>
+            }
+            @if (isCurrentPlan) {
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span class="inline-block px-4 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full shadow-lg shadow-emerald-200">ACTUEL</span>
+              </div>
+            }
+
+            <div class="text-center pt-2">
+              <h3 class="text-lg font-bold text-slate-900">{{ plan.name }}</h3>
+              <p class="text-3xl font-extrabold text-slate-900 mt-3">
+                {{ plan.price.toLocaleString() }}
+                <span class="text-sm font-medium text-slate-400">FCFA/mois</span>
+              </p>
+            </div>
+
+            <ul class="mt-6 space-y-3">
+              @for (f of plan.features; track f) {
+                <li class="flex items-start gap-3 text-sm text-slate-600">
+                  <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  {{ f }}
+                </li>
+              }
+              @if (plan.requestsPerMonth === -1) {
+                <li class="flex items-start gap-3 text-sm text-slate-600">
+                  <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  Demandes illimitées
+                </li>
+              }
+            </ul>
+
+            <button
+              (click)="subscribe(plan.id)"
+              [disabled]="subscribing() !== null || isCurrentPlan"
+              class="mt-8 w-full py-3 text-sm font-bold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              [class.bg-indigo-600]="!isCurrentPlan"
+              [class.text-white]="!isCurrentPlan"
+              [class.hover:bg-indigo-700]="!isCurrentPlan"
+              [class.shadow-lg]="!isCurrentPlan"
+              [class.shadow-indigo-200]="!isCurrentPlan"
+              [class.bg-slate-100]="isCurrentPlan"
+              [class.text-slate-400]="isCurrentPlan"
+              [class.cursor-default]="isCurrentPlan"
+            >
+              @if (subscribing() === plan.id) {
+                <span class="inline-flex items-center gap-2">
+                  <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Souscription...
+                </span>
+              } @else if (isCurrentPlan) {
+                Plan actuel
+              } @else {
+                {{ plan.price === 0 ? 'Commencer gratuit' : 'Souscrire' }}
+              }
+            </button>
+          </div>
         }
       </div>
     </div>
-  </div>
+  }
 
-  <!-- Plans -->
-  <h2 class="text-lg font-bold text-slate-900">Changer de formule</h2>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    @for (plan of plans; track plan.name) {
-      <div class="bg-white rounded-2xl border p-6 transition-all hover:shadow-lg"
-        [class.border-indigo-500]="plan.popular" [class.border-slate-200]="!plan.popular"
-        [class.ring-2]="plan.popular" [class.ring-indigo-500]="plan.popular">
-        @if (plan.popular) {
-          <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full mb-3 inline-block">Populaire</span>
-        }
-        <h3 class="text-lg font-bold text-slate-900">{{ plan.name }}</h3>
-        <p class="text-sm text-slate-500 mt-1">{{ plan.desc }}</p>
-        <p class="text-3xl font-extrabold text-slate-900 mt-4">{{ plan.price.toLocaleString() }} <span class="text-sm font-medium text-slate-400">FCFA/mois</span></p>
-        <ul class="mt-4 space-y-2">
-          @for (f of plan.features; track f) {
-            <li class="flex items-center gap-2 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-              {{ f }}
-            </li>
-          }
-        </ul>
-        <button class="mt-6 w-full py-2.5 text-sm font-semibold rounded-xl transition-all"
-          [class.bg-indigo-600]="plan.popular" [class.text-white]="plan.popular"
-          [class.hover:bg-indigo-700]="plan.popular"
-          [class.border]="!plan.popular" [class.border-slate-200]="!plan.popular"
-          [class.text-slate-700]="!plan.popular" [class.hover:bg-slate-50]="!plan.popular">
-          {{ plan.popular ? 'Souscrire' : 'Choisir' }}
-        </button>
+  <!-- Cancel Confirmation Modal -->
+  @if (showCancelModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" (click)="showCancelModal.set(false)">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full animate-dropdown" (click)="$event.stopPropagation()">
+        <div class="text-center">
+          <div class="w-14 h-14 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Résilier l'abonnement ?</h3>
+          <p class="text-sm text-slate-500 mb-6">Vous perdrez l'accès aux fonctionnalités payantes à la fin de votre cycle de facturation. Vous pourrez réactiver à tout moment.</p>
+          <div class="flex gap-3">
+            <button (click)="showCancelModal.set(false)" class="flex-1 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Annuler</button>
+            <button (click)="cancelSubscription()" class="flex-1 py-2.5 text-sm font-semibold bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-200">Confirmer</button>
+          </div>
+        </div>
       </div>
-    }
-  </div>
+    </div>
+  }
 </div>

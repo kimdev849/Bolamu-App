@@ -1,35 +1,95 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Api } from '../../../core/services/api';
+import { RouterLink } from '@angular/router';
+import { Api, SubscriptionPlan, MySubscription } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
+import { finalize, forkJoin } from 'rxjs';
 
 @Component({
   selector: 'psr-pharmacy-subscription',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './pharmacy-subscription.html',
   styleUrl: './pharmacy-subscription.scss',
 })
 export class PharmacySubscription implements OnInit {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
 
-  readonly pharmacy: any = { name: '—', subscriptionStatus: 'pending', subscriptionEndDate: new Date() };
-
-  readonly plans = [
-    { name: 'Essentiel', desc: 'Pour petites pharmacies', price: 50_000, popular: false, features: ['10 demandes/mois', 'Support email', 'Dashboard de base'] },
-    { name: 'Professionnel', desc: 'Pour pharmacies actives', price: 100_000, popular: true, features: ['Demandes illimitées', 'Support prioritaire', 'Statistiques avancées', 'API accessible'] },
-    { name: 'Enterprise', desc: 'Pour chaînes de pharmacies', price: 200_000, popular: false, features: ['Tout illimité', 'Support dédié 24/7', 'Rapports personnalisés', 'SLA garanti'] },
-  ];
+  readonly plans = signal<SubscriptionPlan[]>([]);
+  readonly mySubscription = signal<MySubscription | null>(null);
+  readonly loading = signal(true);
+  readonly subscribing = signal<string | null>(null); // planId being subscribed
+  readonly showCancelModal = signal(false);
 
   ngOnInit(): void {
-    this.api.getMyPharmacyProfile().subscribe({
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading.set(true);
+    forkJoin({
+      plans: this.api.getSubscriptionPlans(),
+      mySub: this.api.getMySubscription(),
+    })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (res) => {
+          this.plans.set(res.plans.data);
+          this.mySubscription.set(res.mySub.data);
+        },
+        error: () => this.toast.error('Erreur', 'Impossible de charger les données d\'abonnement'),
+      });
+  }
+
+  subscribe(planId: string): void {
+    const current = this.mySubscription();
+    if (current?.plan === planId && current.status === 'ACTIVE') {
+      this.toast.info('Déjà actif', 'Vous êtes déjà abonné à ce plan');
+      return;
+    }
+
+    this.subscribing.set(planId);
+    this.api.subscribeToPlan(planId).pipe(finalize(() => this.subscribing.set(null))).subscribe({
       next: (res) => {
-        if (res.data) Object.assign(this.pharmacy, res.data);
+        this.mySubscription.set(res.data as any);
+        this.toast.success('Abonnement activé', `Passage au plan ${res.data?.planName || 'choisi'} réussi`);
+        // Recharger les données
+        this.loadData();
       },
+      error: () => this.toast.error('Erreur', 'Impossible de souscrire à ce plan'),
     });
   }
 
-  getDaysLeft(endDate: string): number {
-    if (!endDate) return 0;
-    const diff = new Date(endDate).getTime() - Date.now();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  cancelSubscription(): void {
+    this.api.cancelSubscription().subscribe({
+      next: () => {
+        this.toast.success('Abonnement annulé', 'Vous pourrez le réactiver à tout moment');
+        this.showCancelModal.set(false);
+        this.loadData();
+      },
+      error: () => this.toast.error('Erreur', 'Impossible d\'annuler l\'abonnement'),
+    });
+  }
+
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      TRIAL: 'Essai gratuit',
+      ACTIVE: 'Actif',
+      EXPIRED: 'Expiré',
+      CANCELLED: 'Annulé',
+      PENDING: 'En attente',
+    };
+    return labels[status] || status;
+  }
+
+  getStatusColor(status: string): string {
+    const colors: Record<string, string> = {
+      TRIAL: 'bg-blue-100 text-blue-700',
+      ACTIVE: 'bg-emerald-100 text-emerald-700',
+      EXPIRED: 'bg-red-100 text-red-700',
+      CANCELLED: 'bg-slate-100 text-slate-500',
+      PENDING: 'bg-amber-100 text-amber-700',
+    };
+    return colors[status] || 'bg-slate-100 text-slate-500';
   }
 }

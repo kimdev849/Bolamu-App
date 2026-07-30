@@ -5,11 +5,12 @@ import { Api } from '../../../../core/services/api';
 import { Toast } from '../../../../core/services/toast';
 import { Notification } from '../../../../core/models/misc';
 import { DateAgoPipe } from '../../../../shared/pipes/date-ago-pipe';
+import { ClickOutside } from '../../../../shared/directives/click-outside';
 import { interval, Subscription, switchMap, of, catchError } from 'rxjs';
 
 @Component({
   selector: 'psr-navbar',
-  imports: [RouterLink, DateAgoPipe],
+  imports: [RouterLink, DateAgoPipe, ClickOutside],
   templateUrl: './navbar.html',
   styleUrl: './navbar.scss',
 })

@@ -255,6 +255,28 @@ export class Api {
     return this.http.patch<ApiResponse<null>>(`${this.baseUrl}/notifications/read-all`, {});
   }
 
+  // ───── Subscriptions ─────
+
+  getSubscriptionPlans(): Observable<ApiResponse<SubscriptionPlan[]>> {
+    return this.http.get<ApiResponse<SubscriptionPlan[]>>(`${this.baseUrl}/subscriptions/plans`);
+  }
+
+  getMySubscription(): Observable<ApiResponse<MySubscription>> {
+    return this.http.get<ApiResponse<MySubscription>>(`${this.baseUrl}/subscriptions/my`);
+  }
+
+  subscribeToPlan(planId: string): Observable<ApiResponse<MySubscription>> {
+    return this.http.post<ApiResponse<MySubscription>>(`${this.baseUrl}/subscriptions/subscribe`, { planId });
+  }
+
+  cancelSubscription(): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.baseUrl}/subscriptions/cancel`, {});
+  }
+
+  getAdminSubscriptions(): Observable<ApiResponse<AdminSubscription[]>> {
+    return this.http.get<ApiResponse<AdminSubscription[]>>(`${this.baseUrl}/subscriptions/admin`);
+  }
+
   // ───── Admin entity creation ─────
 
   createAdminPharmacy(data: any): Observable<ApiResponse<any>> {
@@ -327,4 +349,44 @@ export interface DeliveryDashboardData {
     totalAgents: number;
     activeAgents: number;
   };
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  requestsPerMonth: number;
+  features: string[];
+}
+
+export interface MySubscription {
+  id: string;
+  pharmacyId: string;
+  plan: string;
+  planName: string;
+  planFeatures: string[];
+  price: number;
+  requestsPerMonth: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  daysLeft: number;
+  lastPaymentAt?: string;
+  nextPaymentAt?: string;
+  createdAt: string;
+}
+
+export interface AdminSubscription {
+  id: string;
+  pharmacyId: string;
+  pharmacyName: string;
+  pharmacy: { id: string; name: string; email: string; phone: string; isActive: boolean };
+  plan: string;
+  planName: string;
+  price: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  lastPaymentAt?: string;
+  createdAt: string;
 }

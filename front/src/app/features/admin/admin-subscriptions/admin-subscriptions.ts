@@ -1,6 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Api } from '../../../core/services/api';
+import { Api, AdminSubscription } from '../../../core/services/api';
+import { Toast } from '../../../core/services/toast';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'psr-admin-subscriptions',
@@ -10,23 +12,43 @@ import { Api } from '../../../core/services/api';
 })
 export class AdminSubscriptions implements OnInit {
   private readonly api = inject(Api);
-  readonly pharmacies = signal<any[]>([]);
+  readonly subscriptions = signal<AdminSubscription[]>([]);
+  readonly loading = signal(true);
 
   readonly statusLabels: Record<string, string> = {
-    active: 'Actif', expired: 'Expiré', pending: 'En attente', cancelled: 'Annulé',
-  };
-  readonly statusColors: Record<string, string> = {
-    active: 'bg-emerald-100 text-emerald-700', expired: 'bg-red-100 text-red-700',
-    pending: 'bg-amber-100 text-amber-700', cancelled: 'bg-slate-100 text-slate-500',
+    TRIAL: 'Essai gratuit',
+    ACTIVE: 'Actif',
+    EXPIRED: 'Expiré',
+    CANCELLED: 'Annulé',
+    PENDING: 'En attente',
   };
 
-  get activeCount() { return this.pharmacies().filter(p => p.isActive).length; }
-  get expiredCount() { return this.pharmacies().filter(p => p.subscriptionStatus === 'expired').length; }
-  get pendingCount() { return this.pharmacies().filter(p => p.subscriptionStatus === 'pending').length; }
+  readonly statusColors: Record<string, string> = {
+    TRIAL: 'bg-blue-100 text-blue-700',
+    ACTIVE: 'bg-emerald-100 text-emerald-700',
+    EXPIRED: 'bg-red-100 text-red-700',
+    CANCELLED: 'bg-slate-100 text-slate-500',
+    PENDING: 'bg-amber-100 text-amber-700',
+  };
+
+  get plansCount() {
+    const subs = this.subscriptions();
+    return {
+      total: subs.length,
+      active: subs.filter(s => s.status === 'ACTIVE').length,
+      trial: subs.filter(s => s.status === 'TRIAL').length,
+      expired: subs.filter(s => s.status === 'EXPIRED' || s.status === 'CANCELLED').length,
+      revenue: subs.filter(s => s.status === 'ACTIVE').reduce((sum, s) => sum + s.price, 0),
+    };
+  }
 
   ngOnInit(): void {
-    this.api.getAdminPharmacies(1, 100).subscribe({
-      next: (res) => this.pharmacies.set(res.data || []),
-    });
+    this.loading.set(true);
+    this.api.getAdminSubscriptions()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (res) => this.subscriptions.set(res.data),
+        error: () => this.toast.error('Erreur', 'Impossible de charger les abonnements'),
+      });
   }
 }
