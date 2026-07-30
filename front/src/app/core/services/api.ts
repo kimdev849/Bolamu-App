@@ -8,7 +8,7 @@ import type { Pharmacy } from '../models/pharmacy';
 import type { Wholesaler } from '../models/wholesaler';
 import type { DeliveryCompany, DeliveryAgent } from '../models/delivery-company';
 import type { ProductRequest, RequestResponse } from '../models/request';
-import type { Order } from '../models/misc';
+import type { Order, Notification } from '../models/misc';
 
 @Injectable({
   providedIn: 'root',
@@ -239,6 +239,20 @@ export class Api {
 
   rejectOnboardingRequest(id: string, reason?: string): Observable<ApiResponse<any>> {
     return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/onboarding/${id}/reject`, { reason });
+  }
+
+  // ───── Notifications ─────
+
+  getNotifications(): Observable<ApiResponse<{ notifications: Notification[]; unreadCount: number }>> {
+    return this.http.get<ApiResponse<{ notifications: Notification[]; unreadCount: number }>>(`${this.baseUrl}/notifications`);
+  }
+
+  markNotificationAsRead(id: string): Observable<ApiResponse<null>> {
+    return this.http.patch<ApiResponse<null>>(`${this.baseUrl}/notifications/${id}/read`, {});
+  }
+
+  markAllNotificationsAsRead(): Observable<ApiResponse<null>> {
+    return this.http.patch<ApiResponse<null>>(`${this.baseUrl}/notifications/read-all`, {});
   }
 
   // ───── Admin entity creation ─────

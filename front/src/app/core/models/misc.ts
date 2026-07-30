@@ -62,8 +62,19 @@ export interface Notification {
   title: string;
   message: string;
   isRead: boolean;
-  link?: string;
+  readAt?: string;
+  payload?: Record<string, any>;
   createdAt: string;
 }
 
-export type NotificationType = 'request' | 'order' | 'delivery' | 'payment' | 'system' | 'subscription';
+export type NotificationType =
+  | 'NEW_REQUEST'
+  | 'REQUEST_FOUND'
+  | 'REQUEST_EXPIRED'
+  | 'NEW_ORDER'
+  | 'ORDER_CONFIRMED'
+  | 'PAYMENT_RECEIVED'
+  | 'DELIVERY_ASSIGNED'
+  | 'DELIVERY_STATUS_UPDATE'
+  | 'NEW_MISSION'
+  | 'MISSION_CANCELLED';
