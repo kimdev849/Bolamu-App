@@ -103,20 +103,19 @@
       <h2 class="text-lg font-bold text-slate-900 mb-6">Choisissez votre formule</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         @for (plan of plans(); track plan.id) {
-          @const isCurrentPlan = mySubscription()?.plan === plan.id && mySubscription()?.status === 'ACTIVE';
           <div
             class="relative bg-white rounded-2xl border-2 p-6 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
-            [class.border-indigo-500]="isCurrentPlan"
-            [class.border-slate-200]="!isCurrentPlan && !plan.id.endsWith('PREMIUM')"
-            [class.border-indigo-300]="!isCurrentPlan && plan.id.endsWith('PREMIUM')"
-            [class.shadow-lg]="!isCurrentPlan && plan.id.endsWith('PREMIUM')"
+            [class.border-indigo-500]="isCurrentPlan(plan.id)"
+            [class.border-slate-200]="!isCurrentPlan(plan.id) && !plan.id.endsWith('PREMIUM')"
+            [class.border-indigo-300]="!isCurrentPlan(plan.id) && plan.id.endsWith('PREMIUM')"
+            [class.shadow-lg]="!isCurrentPlan(plan.id) && plan.id.endsWith('PREMIUM')"
           >
-            @if (plan.id.endsWith('PREMIUM') && !isCurrentPlan) {
+            @if (plan.id.endsWith('PREMIUM') && !isCurrentPlan(plan.id)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span class="inline-block px-4 py-1 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-[10px] font-bold rounded-full shadow-lg shadow-indigo-200">POPULAIRE</span>
               </div>
             }
-            @if (isCurrentPlan) {
+            @if (isCurrentPlan(plan.id)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span class="inline-block px-4 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full shadow-lg shadow-emerald-200">ACTUEL</span>
               </div>
@@ -151,16 +150,16 @@
 
             <button
               (click)="subscribe(plan.id)"
-              [disabled]="subscribing() !== null || isCurrentPlan"
+              [disabled]="subscribing() !== null || isCurrentPlan(plan.id)"
               class="mt-8 w-full py-3 text-sm font-bold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-              [class.bg-indigo-600]="!isCurrentPlan"
-              [class.text-white]="!isCurrentPlan"
-              [class.hover:bg-indigo-700]="!isCurrentPlan"
-              [class.shadow-lg]="!isCurrentPlan"
-              [class.shadow-indigo-200]="!isCurrentPlan"
-              [class.bg-slate-100]="isCurrentPlan"
-              [class.text-slate-400]="isCurrentPlan"
-              [class.cursor-default]="isCurrentPlan"
+              [class.bg-indigo-600]="!isCurrentPlan(plan.id)"
+              [class.text-white]="!isCurrentPlan(plan.id)"
+              [class.hover:bg-indigo-700]="!isCurrentPlan(plan.id)"
+              [class.shadow-lg]="!isCurrentPlan(plan.id)"
+              [class.shadow-indigo-200]="!isCurrentPlan(plan.id)"
+              [class.bg-slate-100]="isCurrentPlan(plan.id)"
+              [class.text-slate-400]="isCurrentPlan(plan.id)"
+              [class.cursor-default]="isCurrentPlan(plan.id)"
             >
               @if (subscribing() === plan.id) {
                 <span class="inline-flex items-center gap-2">
@@ -170,7 +169,7 @@
                   </svg>
                   Souscription...
                 </span>
-              } @else if (isCurrentPlan) {
+              } @else if (isCurrentPlan(plan.id)) {
                 Plan actuel
               } @else {
                 {{ plan.price === 0 ? 'Commencer gratuit' : 'Souscrire' }}

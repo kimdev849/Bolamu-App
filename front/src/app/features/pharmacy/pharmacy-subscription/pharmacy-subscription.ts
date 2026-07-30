@@ -92,4 +92,9 @@ export class PharmacySubscription implements OnInit {
     };
     return colors[status] || 'bg-slate-100 text-slate-500';
   }
+
+  isCurrentPlan(planId: string): boolean {
+    const sub = this.mySubscription();
+    return sub?.plan === planId && sub?.status === 'ACTIVE';
+  }
 }
