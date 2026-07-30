@@ -392,4 +392,110 @@ router.put('/delivery-fees/:id', requireAuth, requireRole('SUPER_ADMIN'), async 
   res.json({ success: true, data: fee });
 });
 
+// ───── PARAMÈTRES SYSTÈME ─────
+
+const SETTING_DEFAULTS: Record<string, string> = {
+  commission_percent: '10',
+  commission_flat: '0',
+  subscription_basic_price: '25000',
+  subscription_premium_price: '50000',
+  subscription_enterprise_price: '100000',
+  request_expiry_minutes: '30',
+  platform_name: 'Bolamu',
+  support_email: 'contact@bolamu.cg',
+  support_phone: '+242 05 555 55 55',
+};
+
+/** GET /api/admin/settings */
+router.get('/settings', requireAuth, requireRole('SUPER_ADMIN'), async (_req: Request, res: Response) => {
+  const dbSettings = await prisma.systemSetting.findMany({
+    where: { key: { in: Object.keys(SETTING_DEFAULTS) } },
+  });
+
+  // Fusionner avec les defaults (ceux pas encore en DB)
+  const settingsMap: Record<string, string> = { ...SETTING_DEFAULTS };
+  for (const s of dbSettings) {
+    settingsMap[s.key] = s.value;
+  }
+
+  res.json({ success: true, data: settingsMap });
+});
+
+/** PUT /api/admin/settings */
+router.put('/settings', requireAuth, requireRole('SUPER_ADMIN'), async (req: Request, res: Response) => {
+  const updates = req.body as Record<string, string>;
+  const allowedKeys = Object.keys(SETTING_DEFAULTS);
+
+  // Lire les anciennes valeurs AVANT les upsert
+  const oldSettings = await prisma.systemSetting.findMany({
+    where: { key: { in: allowedKeys } },
+  });
+  const oldMap: Record<string, string> = {};
+  for (const s of oldSettings) oldMap[s.key] = s.value;
+
+  const results: Record<string, string> = {};
+
+  // Upsert des nouvelles valeurs
+  for (const [key, value] of Object.entries(updates)) {
+    if (!allowedKeys.includes(key)) continue;
+
+    await prisma.systemSetting.upsert({
+      where: { key },
+      create: {
+        key,
+        value: String(value),
+        type: typeof value === 'number' ? 'number' : 'string',
+        description: SETTING_DEFAULTS[key] ? `Configuration: ${key}` : null,
+      },
+      update: { value: String(value) },
+    });
+
+    results[key] = String(value);
+  }
+
+  // Notifier les pharmacies si les prix ont changé
+  const priceKeys = ['subscription_basic_price', 'subscription_premium_price', 'subscription_enterprise_price'];
+  const hasPriceChange = priceKeys.some((k) => updates[k] && updates[k] !== oldMap[k]);
+
+  if (hasPriceChange) {
+    const activeSubs = await prisma.subscription.findMany({
+      where: {
+        status: { in: ['ACTIVE', 'TRIAL'] },
+        pharmacy: { isActive: true },
+      },
+      include: {
+        pharmacy: {
+          select: { users: { select: { id: true } } },
+        },
+      },
+    });
+
+    const notifications: any[] = [];
+    for (const sub of activeSubs) {
+      const planKey = sub.plan === 'BASIC' ? 'subscription_basic_price'
+        : sub.plan === 'PRO' ? 'subscription_premium_price'
+        : sub.plan === 'ENTERPRISE' ? 'subscription_enterprise_price'
+        : null;
+
+      if (planKey && updates[planKey] && updates[planKey] !== oldMap[planKey]) {
+        for (const user of sub.pharmacy.users) {
+          notifications.push({
+            userId: user.id,
+            type: 'SYSTEM' as const,
+            title: 'Mise à jour des tarifs',
+            message: `Le prix de votre formule d'abonnement a été mis à jour : ${updates[planKey]} FCFA/mois.`,
+            payload: { action: 'price_update', plan: sub.plan, oldPrice: oldMap[planKey], newPrice: updates[planKey] },
+          });
+        }
+      }
+    }
+
+    if (notifications.length > 0) {
+      await prisma.notification.createMany({ data: notifications });
+    }
+  }
+
+  res.json({ success: true, message: 'Paramètres enregistrés', data: results });
+});
+
 export default router;
