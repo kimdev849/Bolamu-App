@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -13,12 +13,19 @@ import { Api } from '../../../core/services/api';
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login {
+export class Login implements OnInit {
   private readonly api = inject(Api);
   private readonly auth = inject(Auth);
   private readonly token = inject(Token);
   private readonly toast = inject(Toast);
   private readonly router = inject(Router);
+
+  ngOnInit(): void {
+    // Nettoyer toute session périmée au chargement de la page de login
+    // pour éviter les interférences avec des tokens expirés
+    this.token.clearTokens();
+    this.auth.clearUser();
+  }
 
   /** Map backend roles (SUPER_ADMIN, PHARMACY_ADMIN, etc.) → frontend roles (admin, pharmacy, etc.) */
   private readonly roleMap: Record<string, string> = {

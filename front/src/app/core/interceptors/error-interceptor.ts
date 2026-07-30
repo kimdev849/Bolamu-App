@@ -13,6 +13,20 @@ function getErrorMessage(err: HttpErrorResponse | Error | unknown): string {
   return 'Une erreur inattendue est survenue';
 }
 
+/**
+ * Routes d'authentification où les erreurs 401 sont gérées localement par les composants.
+ * L'intercepteur ne doit pas afficher de toast 'Session expirée' pour ces routes.
+ */
+const AUTH_ROUTES = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/me',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/change-password',
+];
+
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(Toast);
 
@@ -22,9 +36,22 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (err instanceof HttpErrorResponse) {
         switch (err.status) {
-          case 401:
-            toast.error('Session expirée', 'Veuillez vous reconnecter');
+          case 401: {
+            const isAuthRoute = AUTH_ROUTES.some((route) => req.url.includes(route));
+            const hadToken = !!req.headers.get('Authorization');
+
+            if (isAuthRoute) {
+              // Les pages d'auth gèrent elles-mêmes leurs erreurs 401
+              break;
+            }
+
+            if (hadToken) {
+              // L'utilisateur avait un token → session expirée
+              toast.error('Session expirée', 'Veuillez vous reconnecter');
+            }
+            // Sans token et hors route auth → on ignore (cas rare)
             break;
+          }
           case 403:
             toast.error('Accès refusé', 'Vous n\'avez pas les permissions nécessaires');
             break;
