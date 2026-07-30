@@ -97,4 +97,23 @@ export class PharmacySubscription implements OnInit {
     const sub = this.mySubscription();
     return sub?.plan === planId && sub?.status === 'ACTIVE';
   }
+
+  /** Vérifie si l'utilisateur a déjà un abonnement actif (quel que soit le plan) */
+  get hasActiveSub(): boolean {
+    const sub = this.mySubscription();
+    return !!(sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL'));
+  }
+
+  /** Texte du bouton en fonction du contexte */
+  getButtonLabel(planId: string): string {
+    if (this.subscribing() === planId) return 'Souscription...';
+    if (this.isCurrentPlan(planId)) return 'Plan actuel';
+    if (this.hasActiveSub) return 'Changer pour ce plan';
+    return 'Souscrire';
+  }
+
+  /** Désactiver le bouton si abonnement en cours ou plan actuel */
+  isButtonDisabled(planId: string): boolean {
+    return this.subscribing() !== null || this.isCurrentPlan(planId);
+  }
 }

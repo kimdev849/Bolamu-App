@@ -150,7 +150,7 @@
 
             <button
               (click)="subscribe(plan.id)"
-              [disabled]="subscribing() !== null || isCurrentPlan(plan.id)"
+              [disabled]="isButtonDisabled(plan.id)"
               class="mt-8 w-full py-3 text-sm font-bold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               [class.bg-indigo-600]="!isCurrentPlan(plan.id)"
               [class.text-white]="!isCurrentPlan(plan.id)"
@@ -161,19 +161,7 @@
               [class.text-slate-400]="isCurrentPlan(plan.id)"
               [class.cursor-default]="isCurrentPlan(plan.id)"
             >
-              @if (subscribing() === plan.id) {
-                <span class="inline-flex items-center gap-2">
-                  <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  Souscription...
-                </span>
-              } @else if (isCurrentPlan(plan.id)) {
-                Plan actuel
-              } @else {
-                {{ plan.price === 0 ? 'Commencer gratuit' : 'Souscrire' }}
-              }
+              {{ getButtonLabel(plan.id) }}
             </button>
           </div>
         }
