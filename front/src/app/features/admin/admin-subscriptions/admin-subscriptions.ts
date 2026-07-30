@@ -1,8 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Api, AdminSubscription } from '../../../core/services/api';
+import { Api, AdminSubscription, SubscriptionPlan } from '../../../core/services/api';
 import { Toast } from '../../../core/services/toast';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 
 @Component({
   selector: 'psr-admin-subscriptions',
@@ -12,8 +12,25 @@ import { finalize } from 'rxjs';
 })
 export class AdminSubscriptions implements OnInit {
   private readonly api = inject(Api);
+  private readonly toast = inject(Toast);
+
   readonly subscriptions = signal<AdminSubscription[]>([]);
+  readonly allPharmacies = signal<any[]>([]);
+  readonly plans = signal<SubscriptionPlan[]>([]);
   readonly loading = signal(true);
+
+  // Gérer modal
+  readonly showManageModal = signal(false);
+  readonly selectedSub = signal<AdminSubscription | null>(null);
+  readonly selectedPlanId = signal('');
+  readonly updating = signal(false);
+
+  // Nouvel abonnement modal
+  readonly showCreateModal = signal(false);
+  readonly newPharmacyId = signal('');
+  readonly newPlanId = signal('');
+  readonly creating = signal(false);
+  readonly searchQuery = signal('');
 
   readonly statusLabels: Record<string, string> = {
     TRIAL: 'Essai gratuit',
@@ -42,13 +59,117 @@ export class AdminSubscriptions implements OnInit {
     };
   }
 
+  get filteredPharmacies() {
+    const q = this.searchQuery().toLowerCase();
+    return this.allPharmacies().filter(
+      (p) => p.name?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q)
+    );
+  }
+
   ngOnInit(): void {
+    this.loadAll();
+  }
+
+  private loadAll(): void {
     this.loading.set(true);
-    this.api.getAdminSubscriptions()
+    forkJoin({
+      subscriptions: this.api.getAdminSubscriptions(),
+      plans: this.api.getSubscriptionPlans(),
+      pharmacies: this.api.getAdminPharmacies(1, 200),
+    })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (res) => this.subscriptions.set(res.data),
-        error: () => this.toast.error('Erreur', 'Impossible de charger les abonnements'),
+        next: (res) => {
+          this.subscriptions.set(res.subscriptions.data);
+          this.plans.set(res.plans.data);
+          this.allPharmacies.set((res.pharmacies.data || []).map((p: any) => ({
+            ...p,
+            city: p.city?.name || p.city || '—',
+          })));
+        },
+        error: () => this.toast.error('Erreur', 'Impossible de charger les données'),
       });
+  }
+
+  // ───── Gérer ─────
+
+  openManage(sub: AdminSubscription): void {
+    this.selectedSub.set(sub);
+    this.selectedPlanId.set(sub.plan);
+    this.showManageModal.set(true);
+  }
+
+  changePlan(): void {
+    const sub = this.selectedSub();
+    if (!sub || !this.selectedPlanId()) return;
+    this.updating.set(true);
+    this.api.updateAdminSubscription(sub.id, { planId: this.selectedPlanId() })
+      .pipe(finalize(() => this.updating.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Plan changé', 'L\'abonnement a été mis à jour');
+          this.showManageModal.set(false);
+          this.loadAll();
+        },
+        error: () => this.toast.error('Erreur', 'Impossible de changer le plan'),
+      });
+  }
+
+  cancelManagedSubscription(): void {
+    const sub = this.selectedSub();
+    if (!sub) return;
+    this.updating.set(true);
+    this.api.updateAdminSubscription(sub.id, { status: 'CANCELLED' })
+      .pipe(finalize(() => this.updating.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Abonnement annulé', 'L\'abonnement a été annulé');
+          this.showManageModal.set(false);
+          this.loadAll();
+        },
+        error: () => this.toast.error('Erreur', 'Impossible d\'annuler l\'abonnement'),
+      });
+  }
+
+  // ───── Nouvel abonnement ─────
+
+  openCreate(): void {
+    this.newPharmacyId.set('');
+    this.newPlanId.set('');
+    this.searchQuery.set('');
+    this.showCreateModal.set(true);
+  }
+
+  createSubscription(): void {
+    if (!this.newPharmacyId() || !this.newPlanId()) {
+      this.toast.warning('Champs requis', 'Sélectionnez une pharmacie et un plan');
+      return;
+    }
+    this.creating.set(true);
+    this.api.createAdminSubscription(this.newPharmacyId(), this.newPlanId())
+      .pipe(finalize(() => this.creating.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Abonnement créé', 'Le nouvel abonnement est actif');
+          this.showCreateModal.set(false);
+          this.loadAll();
+        },
+        error: (err) => {
+          const msg = err.error?.message || 'Erreur lors de la création';
+          this.toast.error('Erreur', msg);
+        },
+      });
+  }
+
+  // ───── Helpers ─────
+
+  safeDate(date: string | undefined | null): string | null {
+    if (!date) return null;
+    // Si c'est déjà un objet ou autre chose qu'une string, return null
+    if (typeof date !== 'string') return null;
+    // Vérifier que c'est une date valide
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    return date;
   }
 }

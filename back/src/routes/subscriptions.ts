@@ -196,4 +196,89 @@ router.get('/admin', requireAuth, async (req: Request, res: Response) => {
   res.json({ success: true, data: formatted });
 });
 
+/** PATCH /api/subscriptions/admin/:id — Changer le plan d'un abonnement (admin) */
+router.patch('/admin/:id', requireAuth, async (req: Request, res: Response) => {
+  if (req.user!.role !== 'SUPER_ADMIN') {
+    res.status(403).json({ success: false, message: 'Accès réservé aux administrateurs' });
+    return;
+  }
+
+  const { planId, status } = req.body;
+  const data: any = {};
+
+  if (planId) {
+    if (!SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS]) {
+      res.status(400).json({ success: false, message: 'Plan invalide' });
+      return;
+    }
+    const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+    data.plan = planId;
+    data.price = plan.price;
+  }
+
+  if (status) {
+    const validStatuses = ['TRIAL', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING'];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({ success: false, message: 'Statut invalide' });
+      return;
+    }
+    data.status = status;
+  }
+
+  const subscription = await prisma.subscription.update({
+    where: { id: req.params.id },
+    data,
+  });
+
+  res.json({ success: true, message: 'Abonnement mis à jour', data: { ...subscription, price: Number(subscription.price) } });
+});
+
+/** POST /api/subscriptions/admin — Créer un abonnement pour une pharmacie (admin) */
+router.post('/admin', requireAuth, async (req: Request, res: Response) => {
+  if (req.user!.role !== 'SUPER_ADMIN') {
+    res.status(403).json({ success: false, message: 'Accès réservé aux administrateurs' });
+    return;
+  }
+
+  const { pharmacyId, planId } = req.body;
+  if (!pharmacyId || !planId) {
+    res.status(400).json({ success: false, message: 'pharmacyId et planId requis' });
+    return;
+  }
+
+  if (!SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS]) {
+    res.status(400).json({ success: false, message: 'Plan invalide' });
+    return;
+  }
+
+  const pharmacy = await prisma.pharmacy.findUnique({ where: { id: pharmacyId } });
+  if (!pharmacy) {
+    res.status(404).json({ success: false, message: 'Pharmacie non trouvée' });
+    return;
+  }
+
+  const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+  const existing = await prisma.subscription.findUnique({ where: { pharmacyId } });
+
+  if (existing) {
+    res.status(409).json({ success: false, message: 'Cette pharmacie a déjà un abonnement' });
+    return;
+  }
+
+  const subscription = await prisma.subscription.create({
+    data: {
+      pharmacyId,
+      plan: planId as any,
+      price: plan.price,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      status: 'ACTIVE',
+      lastPaymentAt: new Date(),
+      nextPaymentAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  res.status(201).json({ success: true, message: 'Abonnement créé avec succès', data: { ...subscription, price: Number(subscription.price) } });
+});
+
 export default router;

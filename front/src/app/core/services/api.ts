@@ -277,6 +277,14 @@ export class Api {
     return this.http.get<ApiResponse<AdminSubscription[]>>(`${this.baseUrl}/subscriptions/admin`);
   }
 
+  updateAdminSubscription(id: string, data: { planId?: string; status?: string }): Observable<ApiResponse<AdminSubscription>> {
+    return this.http.patch<ApiResponse<AdminSubscription>>(`${this.baseUrl}/subscriptions/admin/${id}`, data);
+  }
+
+  createAdminSubscription(pharmacyId: string, planId: string): Observable<ApiResponse<AdminSubscription>> {
+    return this.http.post<ApiResponse<AdminSubscription>>(`${this.baseUrl}/subscriptions/admin`, { pharmacyId, planId });
+  }
+
   // ───── Admin entity creation ─────
 
   createAdminPharmacy(data: any): Observable<ApiResponse<any>> {
