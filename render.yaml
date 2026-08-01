@@ -36,3 +36,18 @@ services:
         value: "admin@psr.com"
       - key: ADMIN_PASSWORD
         value: "Admin@123"
+
+  # ── Frontend web (Angular) — https://bolamu-app.onrender.com ──
+  - type: web
+    name: bolamu-app
+    env: node
+    region: frankfurt
+    plan: free
+    rootDir: front
+    buildCommand: npm ci && npx ng build --configuration production
+    startCommand: npx http-server dist/pharma/browser -p $PORT -c-1 -s
+    healthCheckPath: /
+
+    envVars:
+      - key: NODE_ENV
+        value: production
