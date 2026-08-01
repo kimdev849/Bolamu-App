@@ -45,9 +45,11 @@ services:
     plan: free
     rootDir: front
     buildCommand: npm ci && npx ng build --configuration production
-    startCommand: npx http-server dist/pharma/browser -p $PORT -c-1 -s
+    startCommand: node node_modules/.bin/http-server dist/pharma/browser -p $PORT -c-1 -s
     healthCheckPath: /
 
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
