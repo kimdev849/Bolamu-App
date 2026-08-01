@@ -29,6 +29,7 @@
             <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Fournisseur</th>
             <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Montant</th>
             <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Statut</th>
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Code OTP</th>
             <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Paiement</th>
             <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase">Date</th>
           </tr>
@@ -46,6 +47,33 @@
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" [class]="STATUS_COLORS[o.orderStatus]">{{ STATUS_LABELS[o.orderStatus] }}</span>
               </td>
               <td class="px-5 py-4">
+                @if (o.otpVerifiedAt) {
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">✓ Vérifié</span>
+                } @else if (o.otpCode) {
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-base font-black tracking-[0.25em] text-slate-900">{{ o.otpCode }}</span>
+                    <span class="text-[10px] text-slate-400">
+                      {{ isOtpExpired(o) ? 'Expiré' : 'Expire ' + (o.otpExpiresAt | date:'HH:mm') }}
+                    </span>
+                  </div>
+                  @if (canGenerateOtp(o)) {
+                    <button (click)="generateOtp(o)" [disabled]="otpLoading() === o.id"
+                      class="mt-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50">
+                      {{ otpLoading() === o.id ? 'Génération...' : 'Régénérer' }}
+                    </button>
+                  }
+                } @else {
+                  @if (canGenerateOtp(o)) {
+                    <button (click)="generateOtp(o)" [disabled]="otpLoading() === o.id"
+                      class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50">
+                      {{ otpLoading() === o.id ? 'Génération...' : 'Générer le code' }}
+                    </button>
+                  } @else {
+                    <span class="text-xs text-slate-300">—</span>
+                  }
+                }
+              </td>
+              <td class="px-5 py-4">
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   [class.bg-emerald-100]="o.paymentStatus === 'CONFIRMED'" [class.text-emerald-700]="o.paymentStatus === 'CONFIRMED'"
                   [class.bg-amber-100]="o.paymentStatus === 'PENDING'" [class.text-amber-700]="o.paymentStatus === 'PENDING'">
@@ -55,7 +83,7 @@
               <td class="px-5 py-4 text-xs text-slate-500">{{ o.createdAt | date:'dd/MM/yyyy' }}</td>
             </tr>
           } @empty {
-            <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-slate-400">Aucune commande</td></tr>
+            <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-slate-400">Aucune commande</td></tr>
           }
         </tbody>
       </table>

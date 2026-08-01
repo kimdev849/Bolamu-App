@@ -130,8 +130,8 @@ export class Api {
     return this.http.get<ApiResponse<DeliveryAgent[]>>(`${this.baseUrl}/delivery-companies/agents`);
   }
 
-  createDeliveryAgent(agent: Partial<DeliveryAgent>): Observable<ApiResponse<DeliveryAgent>> {
-    return this.http.post<ApiResponse<DeliveryAgent>>(`${this.baseUrl}/delivery-companies/agents`, agent);
+  createDeliveryAgent(agent: Partial<DeliveryAgent> & { password?: string }): Observable<ApiResponse<DeliveryAgent> & { credentials?: { email: string; password: string } }> {
+    return this.http.post<ApiResponse<DeliveryAgent> & { credentials?: { email: string; password: string } }>(`${this.baseUrl}/delivery-companies/agents`, agent);
   }
 
   toggleDeliveryAgent(id: string): Observable<ApiResponse<DeliveryAgent>> {
@@ -212,6 +212,11 @@ export class Api {
     return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/orders/${id}/status`, data);
   }
 
+  /** Génère (ou régénère) le code OTP de confirmation de livraison d'une commande */
+  generateOrderOtp(id: string): Observable<ApiResponse<{ orderId: string; otpCode: string; otpExpiresAt: string }>> {
+    return this.http.post<ApiResponse<{ orderId: string; otpCode: string; otpExpiresAt: string }>>(`${this.baseUrl}/orders/${id}/generate-otp`, {});
+  }
+
   // ───── Auth extras ─────
 
   forgotPassword(email: string): Observable<ApiResponse<null>> {
@@ -283,6 +288,16 @@ export class Api {
 
   createAdminSubscription(pharmacyId: string, planId: string): Observable<ApiResponse<AdminSubscription>> {
     return this.http.post<ApiResponse<AdminSubscription>>(`${this.baseUrl}/subscriptions/admin`, { pharmacyId, planId });
+  }
+
+  // ───── Settings ─────
+
+  getAdminSettings(): Observable<ApiResponse<Record<string, string>>> {
+    return this.http.get<ApiResponse<Record<string, string>>>(`${this.baseUrl}/admin/settings`);
+  }
+
+  saveAdminSettings(data: Record<string, string>): Observable<ApiResponse<Record<string, string>>> {
+    return this.http.put<ApiResponse<Record<string, string>>>(`${this.baseUrl}/admin/settings`, data);
   }
 
   // ───── Admin entity creation ─────

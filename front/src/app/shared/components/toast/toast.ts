@@ -3,6 +3,8 @@ import { Toast } from '../../../core/services/toast';
 
 @Component({
   selector: 'psr-toast',
+  standalone: true,
+  imports: [],
   template: `
     <div class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)] pointer-events-none">
       @for (toast of toastService.toasts(); track toast.id) {

@@ -1,74 +1,107 @@
 <div class="p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
-  <div>
-    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Paramètres</h1>
-    <p class="text-sm text-slate-500 mt-1">Configuration de la plateforme Bolamu</p>
-  </div>
-
-  <!-- Platform Info -->
-  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100">
-      <h3 class="text-sm font-bold text-slate-900">Informations générales</h3>
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <svg class="w-8 h-8 text-slate-300 animate-spin" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
     </div>
-    <div class="p-6 space-y-5">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  } @else {
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Paramètres</h1>
+      <p class="text-sm text-slate-500 mt-1">Configuration de la plateforme Bolamu</p>
+    </div>
+
+    <!-- Commission -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="text-sm font-bold text-slate-900">Commission plateforme</h3>
+      </div>
+      <div class="p-6 space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nom de la plateforme</label>
-          <input type="text" [value]="platformName" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all" />
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Taux de commission (%)</label>
+          <input type="number" [(ngModel)]="commissionRate" min="0" max="100"
+            class="w-full sm:w-48 px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all" />
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Email support</label>
-          <input type="email" [value]="supportEmail" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all" />
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Téléphone</label>
-          <input type="text" [value]="supportPhone" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all" />
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Devise</label>
-          <input type="text" [value]="currency" disabled class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500 outline-none cursor-not-allowed" />
-        </div>
+        <p class="text-xs text-slate-400">La commission est prélevée sur chaque commande traitée via la plateforme.</p>
       </div>
     </div>
-  </div>
 
-  <!-- Commission -->
-  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100">
-      <h3 class="text-sm font-bold text-slate-900">Commission plateforme</h3>
-    </div>
-    <div class="p-6 space-y-4">
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Taux de commission (%)</label>
-        <input type="number" [value]="commissionRate" class="w-full sm:w-48 px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all" />
+    <!-- Subscription Pricing -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <h3 class="text-sm font-bold text-slate-900">Tarifs des abonnements</h3>
       </div>
-      <p class="text-xs text-slate-400">La commission est prélevée sur chaque commande traitée via la plateforme.</p>
-    </div>
-  </div>
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-slate-500 mb-4">Les modification de prix s'appliquent immédiatement aux nouveaux abonnements. Les abonnés actuels sont notifiés.</p>
 
-  <!-- Subscription Pricing -->
-  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100">
-      <h3 class="text-sm font-bold text-slate-900">Tarifs des abonnements</h3>
-    </div>
-    <div class="p-6 space-y-4">
-      @for (plan of subscriptionPlans; track plan.name) {
-        <div class="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
+        <!-- Basic -->
+        <div class="flex items-center justify-between py-3.5 px-4 bg-slate-50 rounded-xl border border-slate-100">
           <div>
-            <p class="text-sm font-semibold text-slate-900">{{ plan.name }}</p>
-            <p class="text-xs text-slate-400">{{ plan.description }}</p>
+            <p class="text-sm font-semibold text-slate-900">Essentiel <span class="text-[10px] text-slate-400 font-normal">(BASIC)</span></p>
+            <p class="text-xs text-slate-400">Fonctionnalités essentielles pour petites pharmacies</p>
           </div>
           <div class="flex items-center gap-2">
-            <input type="number" [value]="plan.price" class="w-24 px-2.5 py-2 rounded-lg border border-slate-200 text-sm text-right outline-none focus:ring-2 focus:ring-indigo-500/30" />
-            <span class="text-xs text-slate-500 font-medium">FCFA/mois</span>
+            <input type="number" [(ngModel)]="basicPrice" min="0" step="1000"
+              class="w-24 px-2.5 py-2 rounded-lg border border-slate-200 text-sm text-right outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            <span class="text-xs text-slate-500 font-medium w-16">FCFA/mois</span>
           </div>
         </div>
-      }
-    </div>
-  </div>
 
-  <!-- Save button -->
-  <div class="flex justify-end gap-3">
-    <button class="px-6 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition-colors border border-slate-200">Annuler</button>
-    <button (click)="saveSettings()" class="px-6 py-2.5 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">Enregistrer les modifications</button>
-  </div>
+        <!-- Premium -->
+        <div class="flex items-center justify-between py-3.5 px-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
+          <div>
+            <p class="text-sm font-semibold text-slate-900">Professionnel <span class="text-[10px] text-indigo-400 font-normal">(PREMIUM)</span></p>
+            <p class="text-xs text-slate-400">Accès complet aux fonctionnalités avancées</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="number" [(ngModel)]="premiumPrice" min="0" step="1000"
+              class="w-24 px-2.5 py-2 rounded-lg border border-slate-200 text-sm text-right outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            <span class="text-xs text-slate-500 font-medium w-16">FCFA/mois</span>
+          </div>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="flex items-center justify-between py-3.5 px-4 bg-slate-50 rounded-xl border border-slate-100">
+          <div>
+            <p class="text-sm font-semibold text-slate-900">Enterprise <span class="text-[10px] text-slate-400 font-normal">(ENTERPRISE)</span></p>
+            <p class="text-xs text-slate-400">Solution sur mesure pour chaînes de pharmacies</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="number" [(ngModel)]="enterprisePrice" min="0" step="1000"
+              class="w-24 px-2.5 py-2 rounded-lg border border-slate-200 text-sm text-right outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            <span class="text-xs text-slate-500 font-medium w-16">FCFA/mois</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save / Reset -->
+    <div class="flex justify-end gap-3">
+      <button (click)="resetForm()" class="px-6 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition-colors border border-slate-200 active:scale-[0.97]">
+        Annuler
+      </button>
+      <button (click)="saveSettings()" [disabled]="saving()"
+        class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-60 active:scale-[0.97]">
+        @if (saving()) {
+          <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          Enregistrement...
+        } @else {
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+          Enregistrer les modifications
+        }
+      </button>
+    </div>
+  }
 </div>

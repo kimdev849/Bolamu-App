@@ -1,21 +1,41 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
-import { AppError } from '../middleware/error-handler';
 
 const router = Router();
 
-const SUBSCRIPTION_PLANS = {
-  BASIC: { name: 'Essentiel', price: 25000, requestsPerMonth: 10, features: ['10 demandes/mois', 'Support email', 'Dashboard de base'] },
-  PREMIUM: { name: 'Professionnel', price: 50000, requestsPerMonth: -1, features: ['Demandes illimitées', 'Support prioritaire', 'Statistiques avancées', 'API accessible'] },
-  ENTERPRISE: { name: 'Enterprise', price: 100000, requestsPerMonth: -1, features: ['Tout illimité', 'Support dédié 24/7', 'Rapports personnalisés', 'SLA garanti'] },
-};
+async function getPrices() {
+  const settings = await prisma.systemSetting.findMany({
+    where: { key: { in: ['subscription_basic_price', 'subscription_premium_price', 'subscription_enterprise_price'] } },
+  });
+  const map: Record<string, number> = {
+    BASIC: 25000,
+    PREMIUM: 50000,
+    ENTERPRISE: 100000,
+  };
+  for (const s of settings) {
+    if (s.key === 'subscription_basic_price') map.BASIC = parseInt(s.value) || 25000;
+    if (s.key === 'subscription_premium_price') map.PREMIUM = parseInt(s.value) || 50000;
+    if (s.key === 'subscription_enterprise_price') map.ENTERPRISE = parseInt(s.value) || 100000;
+  }
+  return map;
+}
 
-/** GET /api/subscriptions/plans — Liste des plans disponibles */
-router.get('/plans', (_req: Request, res: Response) => {
+async function getPlans() {
+  const prices = await getPrices();
+  return {
+    BASIC: { name: 'Essentiel', price: prices.BASIC, requestsPerMonth: 10, features: ['10 demandes/mois', 'Support email', 'Dashboard de base'] },
+    PREMIUM: { name: 'Professionnel', price: prices.PREMIUM, requestsPerMonth: -1, features: ['Demandes illimitées', 'Support prioritaire', 'Statistiques avancées', 'API accessible'] },
+    ENTERPRISE: { name: 'Enterprise', price: prices.ENTERPRISE, requestsPerMonth: -1, features: ['Tout illimité', 'Support dédié 24/7', 'Rapports personnalisés', 'SLA garanti'] },
+  };
+}
+
+/** GET /api/subscriptions/plans — Liste des plans disponibles (prix depuis la DB) */
+router.get('/plans', async (_req: Request, res: Response) => {
+  const plans = await getPlans();
   res.json({
     success: true,
-    data: Object.entries(SUBSCRIPTION_PLANS).map(([key, plan]) => ({
+    data: Object.entries(plans).map(([key, plan]) => ({
       id: key,
       ...plan,
     })),
@@ -46,6 +66,8 @@ router.get('/my', requireAuth, async (req: Request, res: Response) => {
     where: { pharmacyId: user.pharmacyId },
   });
 
+  const plans = await getPlans();
+
   if (!subscription) {
     // Créer un abonnement TRIAL par défaut
     subscription = await prisma.subscription.create({
@@ -60,7 +82,7 @@ router.get('/my', requireAuth, async (req: Request, res: Response) => {
     });
   }
 
-  const plan = SUBSCRIPTION_PLANS[subscription.plan as keyof typeof SUBSCRIPTION_PLANS];
+  const plan = plans[subscription.plan as keyof typeof plans];
 
   res.json({
     success: true,
@@ -86,12 +108,14 @@ router.post('/subscribe', requireAuth, async (req: Request, res: Response) => {
   }
 
   const { planId } = req.body;
-  if (!planId || !SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS]) {
+  const plans = await getPlans();
+
+  if (!planId || !plans[planId as keyof typeof plans]) {
     res.status(400).json({ success: false, message: 'Plan invalide' });
     return;
   }
 
-  const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+  const plan = plans[planId as keyof typeof plans];
 
   const user = await prisma.user.findUnique({
     where: { id: req.user!.userId },
@@ -177,19 +201,22 @@ router.get('/admin', requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  const subscriptions = await prisma.subscription.findMany({
-    include: {
-      pharmacy: {
-        select: { id: true, name: true, email: true, phone: true, isActive: true },
+  const [subscriptions, plans] = await Promise.all([
+    prisma.subscription.findMany({
+      include: {
+        pharmacy: {
+          select: { id: true, name: true, email: true, phone: true, isActive: true },
+        },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    }),
+    getPlans(),
+  ]);
 
   const formatted = subscriptions.map((sub) => ({
     ...sub,
     price: Number(sub.price),
-    planName: SUBSCRIPTION_PLANS[sub.plan as keyof typeof SUBSCRIPTION_PLANS]?.name || sub.plan,
+    planName: plans[sub.plan as keyof typeof plans]?.name || sub.plan,
     pharmacyName: sub.pharmacy.name,
   }));
 
@@ -205,13 +232,14 @@ router.patch('/admin/:id', requireAuth, async (req: Request, res: Response) => {
 
   const { planId, status } = req.body;
   const data: any = {};
+  const plans = await getPlans();
 
   if (planId) {
-    if (!SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS]) {
+    if (!plans[planId as keyof typeof plans]) {
       res.status(400).json({ success: false, message: 'Plan invalide' });
       return;
     }
-    const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+    const plan = plans[planId as keyof typeof plans];
     data.plan = planId;
     data.price = plan.price;
   }
@@ -246,7 +274,9 @@ router.post('/admin', requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  if (!SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS]) {
+  const plans = await getPlans();
+
+  if (!plans[planId as keyof typeof plans]) {
     res.status(400).json({ success: false, message: 'Plan invalide' });
     return;
   }
@@ -257,7 +287,7 @@ router.post('/admin', requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+  const plan = plans[planId as keyof typeof plans];
   const existing = await prisma.subscription.findUnique({ where: { pharmacyId } });
 
   if (existing) {

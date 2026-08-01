@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Bolamu Livreur",
+    "slug": "bolamu_app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#16A34A",
+    "splash": {
+      "backgroundColor": "#16A34A",
+      "image": "./assets/icon.png",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#16A34A",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

@@ -72,6 +72,11 @@ async function main() {
     { key: 'otp_max_attempts', value: '3', type: 'number', description: 'Nombre max de tentatives OTP' },
     { key: 'commission_enabled', value: 'false', type: 'boolean', description: 'Activer les commissions (Phase 2)' },
     { key: 'default_delivery_amount', value: '1500', type: 'number', description: 'Frais livraison par défaut FCFA' },
+    { key: 'commission_percent', value: '10', type: 'number', description: 'Commission plateforme en %' },
+    { key: 'commission_flat', value: '0', type: 'number', description: 'Commission fixe FCFA' },
+    { key: 'subscription_basic_price', value: '25000', type: 'number', description: 'Prix abonnement Essentiel (BASIC)' },
+    { key: 'subscription_premium_price', value: '50000', type: 'number', description: 'Prix abonnement Professionnel (PREMIUM)' },
+    { key: 'subscription_enterprise_price', value: '100000', type: 'number', description: 'Prix abonnement Enterprise (ENTERPRISE)' },
   ];
   for (const s of settings) {
     await prisma.systemSetting.create({ data: s });
