@@ -19,6 +19,8 @@ export interface DeliveryAgent {
   firstName: string;
   lastName: string;
   email: string;
+  /** Email de connexion réel du compte (peut différer si généré automatiquement) */
+  loginEmail?: string;
   phone: string;
   isActive: boolean;
   vehicleType: VehicleType;

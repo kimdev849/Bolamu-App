@@ -15,6 +15,13 @@ function generateTempPassword(): string {
   return pwd;
 }
 
+/** Slug sans accents ni caractères spéciaux (pour générer un email) */
+const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+
+/** Email de connexion dérivé : celui fourni, sinon généré à partir du nom */
+const deriveDriverEmail = (email: string | undefined | null, firstName: string, lastName: string) =>
+  ((email && email.trim()) || `${slug(firstName)}.${slug(lastName)}@delivery.cg`).toLowerCase();
+
 /** GET /api/delivery-companies/me */
 router.get('/me', requireAuth, async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({
@@ -109,12 +116,22 @@ router.get('/agents', requireAuth, async (req: Request, res: Response) => {
   if (!user?.deliveryCompanyId) {
     res.status(404).json({ success: false, message: 'Entreprise non trouvée' });
     return;
-  }    const agents = await prisma.deliveryAgent.findMany({
+  }
+
+  const agents = await prisma.deliveryAgent.findMany({
     where: { deliveryCompanyId: user.deliveryCompanyId },
+    include: { user: { select: { email: true } } }, // email réel du compte de connexion
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json({ success: true, data: agents });
+  // Expose loginEmail (email de connexion effectif) et retire l'objet user de la réponse
+  // (pas de fuite du mot de passe haché). Tous les autres champs de l'agent sont préservés.
+  const data = agents.map((a: any) => {
+    const { user, ...rest } = a;
+    return { ...rest, loginEmail: user?.email || a.email };
+  });
+
+  res.json({ success: true, data });
 });
 
 /** POST /api/delivery-companies/agents */
@@ -150,8 +167,7 @@ router.post('/agents', requireAuth, async (req: Request, res: Response) => {
   const companyId = user.deliveryCompanyId;
 
   // Email généré à partir du nom (sans accents) si non fourni
-  const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-  const driverEmail = (email || `${slug(firstName)}.${slug(lastName)}@delivery.cg`).toLowerCase();
+  const driverEmail = deriveDriverEmail(email, firstName, lastName);
 
   // Unicité de l'email — un compte existe déjà
   const existing = await prisma.user.findUnique({ where: { email: driverEmail } });
@@ -211,6 +227,135 @@ router.post('/agents', requireAuth, async (req: Request, res: Response) => {
     data: agent,
     // Identifiants à transmettre à l'agent — retournés UNE fois à la création
     credentials: { email: driverEmail, password: tempPassword },
+  });
+});
+
+/** PATCH /api/delivery-companies/agents/:id — Modifier un agent (nom, email, téléphone) */
+router.patch('/agents/:id', requireAuth, async (req: Request, res: Response) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { deliveryCompanyId: true },
+  });
+
+  if (!user?.deliveryCompanyId) {
+    res.status(404).json({ success: false, message: 'Entreprise non trouvée' });
+    return;
+  }
+
+  const agent = await prisma.deliveryAgent.findFirst({
+    where: { id: req.params.id, deliveryCompanyId: user.deliveryCompanyId },
+  });
+
+  if (!agent) {
+    res.status(404).json({ success: false, message: 'Livreur non trouvé' });
+    return;
+  }
+
+  const { firstName, lastName, email, phone } = req.body;
+  const hasChanges =
+    firstName !== undefined || lastName !== undefined || email !== undefined || phone !== undefined;
+  if (!hasChanges) {
+    res.status(400).json({ success: false, message: 'Aucune modification fournie' });
+    return;
+  }
+
+  // Email de connexion (compte user) dérivé comme à la création
+  const driverEmail = deriveDriverEmail(email, firstName ?? agent.firstName, lastName ?? agent.lastName);
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const up = await tx.deliveryAgent.update({
+        where: { id: agent.id },
+        data: {
+          ...(firstName !== undefined && { firstName }),
+          ...(lastName !== undefined && { lastName }),
+          ...(email !== undefined && { email: email || null }),
+          ...(phone !== undefined && { phone }),
+        },
+      });
+
+      // Synchroniser le compte de connexion lié (email, nom, téléphone)
+      await tx.user.updateMany({
+        where: { deliveryAgentId: agent.id },
+        data: {
+          ...(firstName !== undefined && { firstName }),
+          ...(lastName !== undefined && { lastName }),
+          ...(phone !== undefined && { phone }),
+          ...(email !== undefined && { email: driverEmail }),
+        },
+      });
+
+      return up;
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (e: any) {
+    if (e?.code === 'P2002') {
+      const raw = e?.meta?.target;
+      const target = Array.isArray(raw) ? raw : [raw].filter(Boolean);
+      const onPhone = target.some((t) => String(t).toLowerCase().includes('phone'));
+      const onEmail = target.some((t) => String(t).toLowerCase().includes('email'));
+      const field = onPhone ? 'ce numéro de téléphone' : onEmail ? 'cet email' : 'ces identifiants';
+      res.status(409).json({ success: false, message: `Un agent ou un compte existe déjà avec ${field}` });
+      return;
+    }
+    throw e;
+  }
+});
+
+/** POST /api/delivery-companies/agents/:id/reset-password — Réinitialiser le mot de passe d'un agent */
+router.post('/agents/:id/reset-password', requireAuth, async (req: Request, res: Response) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { deliveryCompanyId: true },
+  });
+
+  if (!user?.deliveryCompanyId) {
+    res.status(404).json({ success: false, message: 'Entreprise non trouvée' });
+    return;
+  }
+
+  const agent = await prisma.deliveryAgent.findFirst({
+    where: { id: req.params.id, deliveryCompanyId: user.deliveryCompanyId },
+  });
+
+  if (!agent) {
+    res.status(404).json({ success: false, message: 'Livreur non trouvé' });
+    return;
+  }
+
+  const { password } = req.body;
+  let tempPassword: string;
+  if (password !== undefined && password !== null && String(password) !== '') {
+    if (String(password).length < 6) {
+      res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' });
+      return;
+    }
+    tempPassword = String(password);
+  } else {
+    tempPassword = generateTempPassword();
+  }
+
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+  const account = await prisma.user.findUnique({
+    where: { deliveryAgentId: agent.id },
+    select: { id: true, email: true },
+  });
+
+  if (!account) {
+    res.status(400).json({ success: false, message: 'Aucun compte de connexion associé à ce livreur' });
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: account.id },
+    data: { password: hashedPassword },
+  });
+
+  res.json({
+    success: true,
+    credentials: { email: account.email, password: tempPassword },
   });
 });
 

@@ -138,6 +138,16 @@ export class Api {
     return this.http.patch<ApiResponse<DeliveryAgent>>(`${this.baseUrl}/delivery-companies/agents/${id}/toggle`, {});
   }
 
+  updateDeliveryAgent(id: string, data: Partial<DeliveryAgent>): Observable<ApiResponse<DeliveryAgent>> {
+    return this.http.patch<ApiResponse<DeliveryAgent>>(`${this.baseUrl}/delivery-companies/agents/${id}`, data);
+  }
+
+  resetDeliveryAgentPassword(id: string, password?: string): Observable<ApiResponse<DeliveryAgent> & { credentials?: { email: string; password: string } }> {
+    return this.http.post<ApiResponse<DeliveryAgent> & { credentials?: { email: string; password: string } }>(
+      `${this.baseUrl}/delivery-companies/agents/${id}/reset-password`, { password }
+    );
+  }
+
   /** Alias: get delivery missions - uses the /orders endpoint filtered by delivery company */
   getDeliveryMissions(): Observable<ApiResponse<any[]> & { pagination: PaginationInfo }> {
     return this.getOrders({ limit: 50 });

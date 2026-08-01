@@ -85,7 +85,15 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  const profile = user.pharmacy || user.wholesaler || user.deliveryCompany || user.deliveryAgent || null;
+  // Pour un livreur (DRIVER), le profil pertinent est l'ENTREPRISE de livraison (c'est son
+  // employeur et c'est le nom qui doit s'afficher dans l'app Bolamu Livreur).
+  // On ne retombe sur l'agent lui-même que si aucun lien entreprise n'existe.
+  const profile =
+    user.pharmacy ||
+    user.wholesaler ||
+    user.deliveryCompany ||
+    user.deliveryAgent ||
+    null;
 
   res.json({
     success: true,

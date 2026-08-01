@@ -4,25 +4,49 @@
       <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Mes agents</h1>
       <p class="text-sm text-slate-500 mt-1">{{ agents().length }} livreurs</p>
     </div>
-    <button (click)="showAddForm.set(true)" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+    <button (click)="showAddForm.set(true)" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-lg shadow-indigo-200 active:scale-[0.97] transition-all">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
       Nouvel agent
     </button>
   </div>
 
+  <!-- Rappel : comment l'agent se connecte -->
+  <div class="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+    <svg class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    <p class="text-xs text-emerald-800 leading-relaxed">
+      <span class="font-semibold">Connexion de l'agent :</span> chaque livreur se connecte dans l'app <b>Bolamu Livreur</b> avec l'email ci-dessous et le mot de passe affiché à la création.
+      Mot de passe perdu ? Utilisez le bouton <b>« Mot de passe »</b> pour en générer un nouveau.
+    </p>
+  </div>
+
   <div class="space-y-2">
     @for (a of agents(); track a.id) {
       <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between hover:border-indigo-200 transition-all">
-        <div class="flex items-center gap-4">
-          <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
             <span class="text-sm font-bold text-slate-600">{{ a.firstName.charAt(0) }}{{ a.lastName.charAt(0) }}</span>
           </div>
-          <div>
-            <p class="text-sm font-bold text-slate-900">{{ a.firstName }} {{ a.lastName }}</p>
-            <p class="text-xs text-slate-400">{{ a.email }} · {{ a.phone }}</p>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-slate-900 truncate">{{ a.firstName }} {{ a.lastName }}</p>
+            <p class="text-xs text-slate-500 truncate flex items-center gap-1">
+              <svg class="w-3 h-3 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+              <span class="truncate">{{ a.loginEmail || a.email || '—' }}</span>
+              <span class="text-slate-300">·</span>
+              <span class="text-slate-400">{{ a.phone }}</span>
+            </p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
+          <button (click)="openEdit(a)" title="Modifier"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+            Modifier
+          </button>
+          <button (click)="openReset(a)" title="Réinitialiser le mot de passe"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+            Mot de passe
+          </button>
           <button (click)="toggleActive(a)" class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
             [class.bg-emerald-50]="a.isActive" [class.text-emerald-700]="a.isActive" [class.hover:bg-emerald-100]="a.isActive"
             [class.bg-slate-100]="!a.isActive" [class.text-slate-500]="!a.isActive" [class.hover:bg-slate-200]="!a.isActive">
@@ -46,8 +70,8 @@
           <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </div>
         <div>
-          <h3 class="text-lg font-bold text-slate-900">Livreur créé !</h3>
-          <p class="text-xs text-slate-500">Transmettez ces identifiants à l'agent</p>
+          <h3 class="text-lg font-bold text-slate-900">{{ credentialsTitle() }}</h3>
+          <p class="text-xs text-slate-500">{{ credentialsSubtitle() }}</p>
         </div>
       </div>
       <div class="p-6 space-y-4">
@@ -74,6 +98,7 @@
   </div>
 }
 
+<!-- Modal : nouvel agent -->
 @if (showAddForm()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4" (click)="showAddForm.set(false)">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
@@ -93,7 +118,91 @@
       </div>
       <div class="p-4 border-t border-slate-100 flex justify-end gap-2">
         <button (click)="showAddForm.set(false)" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg">Annuler</button>
-        <button (click)="addAgent()" class="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Ajouter</button>
+        <button (click)="addAgent()" [disabled]="isSubmitting()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 active:scale-[0.97]">
+          @if (isSubmitting()) {
+            <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            Ajout...
+          } @else { Ajouter }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal : modifier un agent -->
+@if (editingAgent()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4" (click)="closeEdit()">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-2xl max-w-md w-full shadow-2xl slide-up" (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Modifier le livreur</h3>
+          <p class="text-xs text-slate-500">{{ editingAgent()!.firstName }} {{ editingAgent()!.lastName }}</p>
+        </div>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Prénom *</label><input type="text" [value]="editFirstName()" (input)="editFirstName.set($any($event.target).value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all" /></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nom *</label><input type="text" [value]="editLastName()" (input)="editLastName.set($any($event.target).value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all" /></div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Email de connexion</label>
+          <input type="email" [value]="editEmail()" (input)="editEmail.set($any($event.target).value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all" />
+          <p class="text-[11px] text-slate-400 mt-1">Si laissé vide, un email est généré à partir du nom.</p>
+        </div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Téléphone</label><input type="text" [value]="editPhone()" (input)="editPhone.set($any($event.target).value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all" /></div>
+        <div class="rounded-xl bg-slate-50 border border-slate-100 p-3">
+          <p class="text-xs text-slate-500">Le changement d'email ou de téléphone est appliqué au compte de connexion de l'agent. Pensez à lui transmettre les nouveaux identifiants si l'email change.</p>
+        </div>
+      </div>
+      <div class="p-4 border-t border-slate-100 flex justify-end gap-2">
+        <button (click)="closeEdit()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg">Annuler</button>
+        <button (click)="saveEdit()" [disabled]="isSubmitting()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 active:scale-[0.97]">
+          @if (isSubmitting()) {
+            <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            Enregistrement...
+          } @else { Enregistrer }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal : réinitialiser le mot de passe -->
+@if (resettingAgent()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4" (click)="closeReset()">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-2xl max-w-md w-full shadow-2xl slide-up" (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Réinitialiser le mot de passe</h3>
+          <p class="text-xs text-slate-500">{{ resettingAgent()!.firstName }} {{ resettingAgent()!.lastName }}</p>
+        </div>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nouveau mot de passe <span class="text-xs font-normal text-slate-400">(optionnel — généré si vide)</span></label>
+          <input type="text" [value]="resetPassword()" (input)="resetPassword.set($any($event.target).value)" placeholder="Laisser vide pour générer" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all" />
+          <p class="text-[11px] text-slate-400 mt-1">Minimum 6 caractères. L'ancien mot de passe ne fonctionnera plus immédiatement.</p>
+        </div>
+        <div class="rounded-xl bg-amber-50 border border-amber-100 p-3">
+          <p class="text-xs text-amber-700">Les nouveaux identifiants s'afficheront une seule fois après confirmation. Transmettez-les à l'agent.</p>
+        </div>
+      </div>
+      <div class="p-4 border-t border-slate-100 flex justify-end gap-2">
+        <button (click)="closeReset()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg">Annuler</button>
+        <button (click)="resetAgentPassword()" [disabled]="isSubmitting()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 active:scale-[0.97]">
+          @if (isSubmitting()) {
+            <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            Réinitialisation...
+          } @else { Réinitialiser }
+        </button>
       </div>
     </div>
   </div>
